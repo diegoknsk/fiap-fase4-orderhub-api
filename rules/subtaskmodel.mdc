@@ -1,0 +1,36 @@
+---
+alwaysApply: true
+---
+
+=====================
+MODELO DE SUBTASK
+=====================
+
+Título:
+Um título curto e direto, ex.: "Criar entidade Order e interfaces de gateway".
+
+Descrição:
+Explique exatamente o que deve ser feito, incluindo:
+- Objetivo da subtask.
+- Quais camadas serão alteradas (Domain, UseCases, Gateways, DataSource, Api, Tests).
+- Se deve copiar algo do projeto anterior (fastfood-api) e ADAPTAR para o novo contexto.
+
+Passos de implementação:
+- Lista de passos claros (bullet points), ex.:
+  - Criar classe Order em /Domain com propriedades X, Y, Z.
+  - Criar interface IOrderGateway em /Gateways com métodos ABC.
+  - Copiar lógica de validação do Order do projeto fastfood-api e adaptar para o novo modelo.
+  - Garantir que nenhum código acesse EF ou Dynamo diretamente nesta camada.
+
+Como testar (obrigatório):
+- Testes unitários:
+  - Descrever quais testes criar/atualizar (ex.: "Criar teste para validar que Order não permite valor negativo").
+  - Indicar o projeto de teste (ex.: /Tests/OrderHub.Domain.Tests).
+- Teste manual (se aplicável):
+  - Exemplo de chamada HTTP no Swagger/Postman ou cenário manual.
+- Comando para rodar:
+  - `dotnet test` na solução inteira ou no projeto específico.
+
+Critérios de aceite da subtask:
+- Lista de itens que devem estar verdadeiros para considerar a subtask pronta.
+  - Ex.: "Entidade Order criada e compilando", "Testes de domínio para Order passando", "Nenhuma referência indevida a infra em Domain".

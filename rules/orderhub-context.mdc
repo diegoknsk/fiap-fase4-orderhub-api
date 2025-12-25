@@ -1,0 +1,333 @@
+---
+alwaysApply: true
+---
+
+Você está trabalhando no microserviço **FastFoodOrderHub**, parte do ecossistema FastFood para trabalho acadêmico (Fase 4).
+
+=====================
+CONTEXTO DO PROJETO
+=====================
+
+Este é um microserviço de **Saga Coreografada** que faz parte de uma solução maior de fast food com múltiplos microserviços.
+
+**Tecnologias e Versões:**
+- .NET 8 (todas as APIs)
+- AWS Academy (ambiente de desenvolvimento)
+- DynamoDB (banco de dados exclusivo deste serviço)
+- AWS SQS (integração assíncrona com outros microserviços)
+
+**Autenticação AWS:**
+- **SEMPRE usar Access Key e Secret Key** para todos os acessos AWS
+- Não usar credenciais IAM roles ou outros métodos
+- Configurar credenciais via variáveis de ambiente ou AWS CLI
+
+=====================
+RESPONSABILIDADES DO ORDERHUB
+=====================
+
+Este microserviço é responsável por gerenciar todo o ciclo de vida de pedidos e catálogo de produtos:
+
+**Funcionalidades Principais:**
+1. **Gestão de Produtos:**
+   - Listagem de produtos
+   - Consulta de produto por ID
+   - (Futuro) Cadastro e atualização de produtos
+
+2. **Gestão de Pedidos:**
+   - Criação de novos pedidos
+   - Inclusão de produtos no pedido
+   - Listagem de pedidos
+   - Consulta de pedido por ID
+   - Atualização de status do pedido
+
+3. **Integração com Saga:**
+   - Ao finalizar o processamento do pedido neste serviço
+   - Envia mensagem para a fila SQS do microserviço de pagamento (FastFoodPayStream)
+   - Inicia o próximo passo da saga coreografada
+
+=====================
+BANCO DE DADOS - DYNAMODB
+=====================
+
+**Banco Exclusivo:**
+- Este microserviço possui um banco DynamoDB exclusivo
+- Não compartilha dados diretamente com outros microserviços
+- Comunicação entre serviços é feita via mensagens assíncronas (SQS)
+
+**Tabelas Iniciais:**
+1. **Pedidos (Orders)**
+   - Armazena informações dos pedidos criados
+   - Estrutura a ser definida conforme necessidades do domínio
+
+2. **Produtos (Products)**
+   - Armazena catálogo de produtos disponíveis
+   - Estrutura a ser definida conforme necessidades do domínio
+
+**Observação:**
+- Pode ser necessário criar tabelas adicionais conforme o projeto evolui
+- Sempre avaliar a necessidade antes de criar novas tabelas
+- Seguir padrões de modelagem DynamoDB (particionamento, índices, etc.)
+
+=====================
+ARQUITETURA E PADRÕES
+=====================
+
+**Saga Coreografada:**
+- Este serviço participa de uma saga coreografada
+- Cada microserviço é responsável por seu próprio passo
+- Comunicação via eventos/mensagens (SQS)
+- Não há orquestrador central
+
+**Fluxo de Integração:**
+```
+Cliente → OrderHub (cria pedido) 
+       → OrderHub (processa pedido)
+       → SQS (envia mensagem para PayStream)
+       → PayStream (processa pagamento)
+       → [continua saga...]
+```
+
+**Padrão de Código:**
+- Seguir arquitetura Clean Architecture conforme definido em `baseprojectcontext.mdc`
+- Usar padrão Gateway para abstrair acesso ao DynamoDB
+- UseCases orquestram o fluxo de negócio
+- API expõe endpoints HTTP RESTful
+
+=====================
+ESTRUTURA DE PASTAS E ARQUITETURA
+=====================
+
+**Referência de Arquitetura:**
+- Este projeto deve seguir a mesma estrutura de pastas e organização do projeto de referência: `C:\Projetos\Fiap\fiap-fase4-auth-lambda`
+- A estrutura foi validada e aplicada com sucesso no projeto Auth Lambda
+- Adaptar conforme necessário para o contexto de API HTTP em EKS (ao invés de Lambda)
+
+**Estrutura de Diretórios:**
+
+```
+fiap-fase4-orderhub-api/
+├── src/
+│   ├── Core/
+│   │   ├── FastFood.OrderHub.Domain/
+│   │   │   ├── Entities/          # Entidades de domínio (Order, Product, etc.)
+│   │   │   ├── Common/             # Exceções, Value Objects, etc.
+│   │   │   └── FastFood.OrderHub.Domain.csproj
+│   │   │
+│   │   ├── FastFood.OrderHub.Application/
+│   │   │   ├── Commands/           # Commands para operações (CreateOrder, AddProductToOrder, etc.)
+│   │   │   ├── UseCases/           # Casos de uso (CreateOrderUseCase, ListProductsUseCase, etc.)
+│   │   │   ├── InputModels/        # Modelos de entrada dos UseCases
+│   │   │   ├── OutputModels/       # Modelos de saída dos UseCases
+│   │   │   ├── Responses/          # ResponseModels (Application Responses)
+│   │   │   ├── Presenters/         # Presenters para transformação de Responses
+│   │   │   ├── Ports/              # Interfaces de Gateways (IOrderGateway, IProductGateway, ISqsGateway)
+│   │   │   └── FastFood.OrderHub.Application.csproj
+│   │   │
+│   │   ├── FastFood.OrderHub.Infra/
+│   │   │   ├── Services/          # Implementações de serviços externos (SQS, etc.)
+│   │   │   └── FastFood.OrderHub.Infra.csproj
+│   │   │
+│   │   ├── FastFood.OrderHub.Infra.Persistence/
+│   │   │   ├── Repositories/      # Implementações de repositórios DynamoDB
+│   │   │   ├── Entities/          # Entidades de persistência (se necessário)
+│   │   │   ├── Configurations/    # Configurações DynamoDB (se necessário)
+│   │   │   └── FastFood.OrderHub.Infra.Persistence.csproj
+│   │   │
+│   │   └── FastFood.OrderHub.CrossCutting/
+│   │       ├── Extensions/         # Extensões (ServiceCollectionExtensions, etc.)
+│   │       └── FastFood.OrderHub.CrossCutting.csproj
+│   │
+│   ├── InterfacesExternas/
+│   │   ├── FastFood.OrderHub.Api/  # API HTTP ASP.NET Core (para EKS)
+│   │   │   ├── Controllers/        # Controllers HTTP
+│   │   │   ├── Program.cs
+│   │   │   ├── appsettings.json
+│   │   │   └── FastFood.OrderHub.Api.csproj
+│   │   │
+│   │   └── FastFood.OrderHub.Migrator/  # Job de manutenção DynamoDB (K8s Job)
+│   │       ├── Program.cs
+│   │       └── FastFood.OrderHub.Migrator.csproj
+│   │
+│   └── tests/
+│       ├── FastFood.OrderHub.Tests.Unit/  # Testes unitários
+│       └── FastFood.OrderHub.Tests.Bdd/   # Testes BDD (SpecFlow)
+│
+├── rules/                            # Regras e contexto do projeto
+├── docs/                             # Documentação
+├── .github/
+│   └── workflows/                    # GitHub Actions
+└── FastFood.OrderHub.sln            # Solução .NET
+```
+
+**Organização da Solução (.sln):**
+- Usar pastas virtuais no .sln para organização: `src`, `Core`, `InterfacesExternas`, `Tests`
+- Projetos Core dentro de `Core`
+- Projetos de API/Migrator dentro de `InterfacesExternas`
+- Projetos de testes dentro de `Tests`
+- **SEMPRE adicionar novos projetos ao arquivo de solução após criá-los**
+
+**Nomenclatura de Projetos:**
+- Padrão: `FastFood.OrderHub.{Camada}`
+- Exemplos:
+  - `FastFood.OrderHub.Domain`
+  - `FastFood.OrderHub.Application`
+  - `FastFood.OrderHub.Infra`
+  - `FastFood.OrderHub.Infra.Persistence`
+  - `FastFood.OrderHub.CrossCutting`
+  - `FastFood.OrderHub.Api`
+  - `FastFood.OrderHub.Migrator`
+  - `FastFood.OrderHub.Tests.Unit`
+  - `FastFood.OrderHub.Tests.Bdd`
+
+**Namespaces:**
+- Seguir o mesmo padrão dos nomes dos projetos
+- Exemplo: `FastFood.OrderHub.Domain.Entities`, `FastFood.OrderHub.Application.UseCases`, etc.
+
+**Diferenças em relação ao projeto Auth Lambda:**
+- API será ASP.NET Core HTTP (não Lambda)
+- Banco de dados será DynamoDB (não PostgreSQL)
+- Terá projeto Migrator para manutenção de tabelas DynamoDB (K8s Job)
+- Não terá múltiplas Lambdas, apenas uma API HTTP
+
+=====================
+REGRAS ESPECÍFICAS DO ORDERHUB
+=====================
+
+**Criação de Pedido:**
+- Validar produtos antes de criar pedido
+- Calcular totais e subtotais
+- Gerar ID único para o pedido
+- Persistir no DynamoDB
+- Após persistência bem-sucedida, enviar mensagem para fila de pagamento
+
+**Listagem de Produtos:**
+- Retornar produtos disponíveis
+- Considerar paginação se necessário
+- Filtrar produtos inativos se aplicável
+
+**Inclusão de Produtos no Pedido:**
+- Validar se pedido existe
+- Validar se produto existe
+- Validar se pedido pode ser modificado (status permitido)
+- Atualizar totais do pedido
+- Persistir alterações
+
+**Envio para Fila de Pagamento:**
+- Mensagem deve conter informações necessárias para o PayStream processar
+- Usar formato JSON estruturado
+- Incluir ID do pedido, valor total, dados do cliente, etc.
+- Tratar erros de envio (retry, dead letter queue)
+
+=====================
+CONFIGURAÇÃO AWS
+=====================
+
+**Credenciais:**
+- Configurar Access Key e Secret Key via:
+  - Variáveis de ambiente: `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`
+  - Ou arquivo de credenciais AWS (`~/.aws/credentials`)
+  - Ou configuração no appsettings.json (apenas para desenvolvimento local)
+
+**Recursos AWS Utilizados:**
+- DynamoDB: Tabelas de pedidos e produtos
+- SQS: Fila para envio de mensagens ao PayStream
+- EKS: Cluster Kubernetes para hospedar o deployment da API
+- ECR: Container Registry para armazenar imagens Docker
+- (Futuro) API Gateway: Para exposição da API (se necessário)
+
+**Região:**
+- Usar a região configurada no AWS Academy
+- Verificar configuração de região nas credenciais
+
+=====================
+DEPLOY E INFRAESTRUTURA
+=====================
+
+**Ambiente de Execução:**
+- A API será executada em um **Deployment no cluster EKS**
+- A infraestrutura (EKS, ECR, DynamoDB, SQS, etc.) será criada em **outro projeto separado**
+- Este repositório contém apenas o código da aplicação e pipelines de CI/CD
+
+**GitHub Actions - CI/CD:**
+
+Este repositório terá **3 GitHub Actions principais**:
+
+1. **Push de Imagens para ECR:**
+   - Build da imagem Docker da aplicação
+   - Push da imagem para o Amazon ECR
+   - Executar após build, testes e análise Sonar bem-sucedidos
+   - Tag da imagem baseada em versão/tag do Git
+   - **Validação obrigatória:** Cobertura mínima de 85% e pelo menos 1 teste BDD
+
+2. **Deploy no EKS:**
+   - Deploy do deployment no cluster Kubernetes
+   - Atualizar a imagem do deployment com a nova versão
+   - Executar após push bem-sucedido para ECR
+   - Pode incluir health checks e rollback automático
+
+3. **Job de Manutenção de Banco de Dados (DynamoDB):**
+   - Executar um **Kubernetes Job** para manutenção do DynamoDB
+   - Responsável por:
+     - Criar novas tabelas quando necessário
+     - Ajustes finos em tabelas existentes (índices, throughput, etc.)
+     - Migrações de schema quando aplicável
+   - Executar manualmente ou em eventos específicos (ex: criação de PR, merge na main)
+   - O job deve ser idempotente (pode ser executado múltiplas vezes sem problemas)
+
+**Observações sobre Deploy:**
+- As configurações do Kubernetes (Deployment, Service, ConfigMap, etc.) podem estar neste repositório ou no projeto de infraestrutura
+- Sempre validar que a imagem foi criada corretamente antes do deploy
+- O job de manutenção deve ter permissões adequadas para acessar o DynamoDB (via Access Key/Secret Key)
+
+=====================
+MELHORES PRÁTICAS APLICADAS
+=====================
+
+- Clean Architecture com separação clara de responsabilidades
+- SOLID principles
+- Testes unitários e de integração
+- Tratamento de erros robusto
+- Logging estruturado
+- Validações de entrada
+- Idempotência nas operações críticas
+- Versionamento de API (quando necessário)
+
+=====================
+CRITÉRIOS DE ACEITE - TESTES
+=====================
+
+**Cobertura de Testes (SonarQube/SonarCloud):**
+- **Mínimo obrigatório: 85% de cobertura de código**
+- A análise de cobertura deve ser executada via SonarQube/SonarCloud
+- O Quality Gate do Sonar deve bloquear merges que não atendam este critério
+- Cobertura deve ser medida em todas as camadas (Domain, UseCases, Gateways, API)
+
+**Teste BDD (Behavior Driven Development):**
+- **Mínimo obrigatório: 1 teste BDD** (mesmo que simples)
+- Deve validar pelo menos um fluxo crítico do sistema
+- Exemplo sugerido: "Cliente cria pedido → pedido é persistido → mensagem é enviada para fila de pagamento"
+- Pode usar frameworks como SpecFlow, Gherkin, ou similar
+- O teste BDD deve ser executável e fazer parte da suíte de testes do projeto
+
+**Validação no CI/CD:**
+- Os critérios de aceite devem ser validados nas GitHub Actions
+- Build deve falhar se cobertura estiver abaixo de 85%
+- Build deve falhar se não houver pelo menos 1 teste BDD implementado
+- Sonar Quality Gate deve ser obrigatório para merge na branch principal
+
+**Observações:**
+- Estes são critérios de aceite obrigatórios do projeto
+- Não é permitido fazer merge sem atender ambos os critérios
+- Testes BDD podem ser simples, mas devem validar comportamento real do sistema
+- Cobertura de 85% é o mínimo, mas buscar sempre o máximo possível
+
+=====================
+NOTAS IMPORTANTES
+=====================
+
+- Este é um projeto acadêmico, mas deve seguir padrões profissionais
+- Código deve ser limpo, testável e manutenível
+- Documentação inline quando necessário
+- Commits descritivos e organizados
+- Sempre considerar escalabilidade e performance do DynamoDB
+- Monitorar custos do AWS Academy (recursos limitados)

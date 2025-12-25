@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+
+=====================
+REGRAS PARA ESCRITA DE HISTÓRIAS
+=====================
+
+[HISTÓRIA]
+
+Repositório: <nome-do-repo> (ex.: orderhub-api)
+Contexto do serviço: <copiar bloco do contexto específico acima>
+Título: <resumo curto da história>
+
+Objetivo:
+Descreva claramente o que deve ser entregue nesta história (ex.: "Implementar o caso de uso de criação de pedido no OrderHub usando DynamoDB e publicar evento na SQS para o PayStream").
+
+Escopo técnico:
+- Tecnologias envolvidas (ex.: .NET 8, ASP.NET, DynamoDB, SQS).
+- Camadas que serão afetadas (Domain, UseCases, Gateways, DataSource, Api, Tests).
+- Partes do projeto anterior fastfood-api que podem ser usadas como referência (ex.: "usar a entidade Order e a lógica de validação do domínio").
+
+Regras obrigatórias:
+- Respeitar Clean Architecture descrita no contexto base.
+- Criar/atualizar UseCases em vez de colocar regra em controllers.
+- Toda dependência externa deve passar por Gateways + DataSource.
+- Não acessar banco diretamente em controllers.
+- Sempre criar testes unitários para o que for implementado.
+- Sempre descrever uma forma de testar a entrega (manual e/ou automatizada).
+
+Definição de pronto (DoD):
+- Código compila.
+- Testes unitários criados/atualizados e passando.
+- (Se aplicável) endpoint exposto e funcionando no Swagger.
+- Cobertura de testes aumentou ou se manteve dentro da meta.
+- Sem violações gritantes de Sonar (bugs sérios, code smells críticos).
+- Documentação mínima atualizada (ex.: README ou comentários relevantes).
+
+Tarefa para o Cursor:
+Usando este contexto, quebre esta história em subtasks detalhadas, seguindo o modelo de subtask abaixo, sempre incluindo para cada subtask:
+- O que implementar.
+- Em quais arquivos/pastas focar.
+- Como validar/testar que a subtask está pronta.

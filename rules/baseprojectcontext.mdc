@@ -1,0 +1,196 @@
+---
+alwaysApply: true
+---
+
+Você está trabalhando em um ecossistema de microsserviços FastFood para a pós-graduação (Fases 2, 3 e 4).
+
+=====================
+VISÃO GERAL DA SOLUÇÃO
+=====================
+
+O sistema é um self-service de fast food, dividido em 4 serviços principais:
+
+1. OrderHub (Pedidos + Catálogo)
+   - Responsável por:
+     - Cadastro e listagem de produtos e categorias.
+     - Criação, consulta e listagem de pedidos.
+   - Banco: DynamoDB (baixa latência, alta disponibilidade).
+   - Exposição: API HTTP em .NET rodando em EKS.
+   - Integrações:
+     - Publica mensagens de "pedido criado" na SQS para o serviço de Pagamento.
+
+2. PayStream (Pagamento)
+   - Responsável por:
+     - Criação de intent de pagamento.
+     - Consulta de status.
+     - Integração com Mercado Pago (ou mock).
+   - Banco: Postgres (RDS).
+   - Exposição: API HTTP em .NET em EKS.
+   - Integrações:
+     - Consome SQS de pedidos.
+     - Publica resultado do pagamento em SQS para Cozinha.
+
+3. KitchenFlow (Cozinha)
+   - Responsável por:
+     - Gerenciar fila de produção da cozinha.
+     - Atualizar status do pedido (Recebido, Em preparação, Pronto, Finalizado).
+   - Banco: Postgres (RDS).
+   - Exposição: API HTTP em .NET em EKS.
+   - Integrações:
+     - Consome SQS de resultado de Pagamento.
+     - (Opcional) publica atualizações de status para OrderHub.
+
+4. AuthLambda (Autenticação por CPF)
+   - Responsável por:
+     - Identificar o cliente somente pelo CPF (sem senha).
+   - Banco: Postgres (RDS) dedicado à autenticação.
+   - Exposição: Lambda .NET 8 + API Gateway.
+   - Integrações:
+     - Pode consultar dados de pedidos/clientes para enriquecer resposta, sem acoplar direto aos bancos dos outros serviços.
+
+Infraestrutura global:
+- Kubernetes (EKS) para microsserviços HTTP.
+- Lambda + API Gateway para autenticação.
+- SQS para integração assíncrona entre serviços.
+- DynamoDB para pedidos/produtos/categorias.
+- RDS Postgres para autenticação, pagamento e cozinha.
+- Terraform como IaC, com GitHub Actions para CI/CD.
+
+=====================
+PADRÃO DE ARQUITETURA (.NET / CLEAN ARCH + GATEWAY)
+=====================
+
+Todos os serviços .NET seguem o mesmo padrão de pastas (ajuste nomes conforme o repo):
+
+/Domain
+  - Entidades de domínio, VOs, enums e regras de negócio puras.
+  - Sem dependência de EF, Dynamo client, SQS, HTTP, etc.
+
+/UseCases
+  - Casos de uso (aplicação).
+  - Orquestram o fluxo, combinam regras, chamam Gateways.
+  - Conhecem apenas Domain + interfaces de Gateways, nunca implementações concretas.
+
+/Responses
+  - ResponseModels (Application Responses) que definem o contrato de saída dos UseCases.
+  - Devem estar na camada Application.
+  - Representam os dados que serão retornados pela API.
+
+/Presenters
+  - Presenters que fazem adaptação/transformação dos Application Responses quando necessário.
+  - Devem estar na camada Application.
+  - Por padrão apenas retornam o response, mas podem fazer transformações se necessário.
+  - API consome os Responses através dos Presenters.
+
+/Gateways
+  - Interfaces que definem como os UseCases conversam com o "mundo externo":
+    - Acesso a banco (ex.: IOrderGateway, IPaymentGateway).
+    - Acesso a SQS (ISqsGateway).
+    - Acesso a serviços externos (IMercadoPagoGateway).
+  - Concentram contratos e DTOs de infra (sem lógica de negócio).
+
+/DataSource ou /Infra.Persistence /Infra.External
+  - Implementações concretas dos Gateways.
+  - Aqui entram:
+    - Repositórios EF/Dapper (Postgres).
+    - Clientes DynamoDB.
+    - Clientes SQS.
+    - Clientes Mercado Pago.
+  - Esta camada pode referenciar bibliotecas externas, SDKs, drivers etc.
+
+/Api
+  - Projeto ASP.NET Core (ou Lambda HTTP).
+  - Controllers, endpoints, DTOs de request (RequestModels).
+  - NÃO deve ter ResponseModels duplicados (usa Application Responses).
+  - NÃO deve ter Presenters (usa Presenters da Application).
+  - NÃO acessa banco, fila ou client externo diretamente.
+  - Sempre chama UseCases, passando Commands/Queries.
+  - Usa Presenters da Application para obter Responses formatados.
+
+/Tests
+  - Testes unitários de UseCases, Gateways (com mocks) e comportamento de controllers.
+  - Testes BDD para pelo menos 1 fluxo crítico de cada serviço.
+
+Regras de dependência (sempre respeitar):
+- Domain → não depende de ninguém.
+- UseCases → depende de Domain + Gateways (interfaces).
+- Responses → pode depender de Domain (para tipos), mas sem implementações.
+- Presenters → depende de Responses (Application).
+- Gateways → pode depender de Domain (para tipos), mas sem implementações.
+- DataSource/Infra → depende de Gateways + libs externas.
+- Api → depende de UseCases + Presenters (Application) + RequestModels (próprios).
+- Tests → pode referenciar tudo para validar comportamento.
+
+**Regra importante sobre Presenters e Responses:**
+- Presenters e ResponseModels devem estar na camada Application.
+- Application define o contrato de saída (ResponseModels).
+- API não deve ter ResponseModels duplicados.
+- API consome os Responses da Application através dos Presenters.
+- Presenters podem fazer transformações dos Application Responses quando necessário.
+
+=====================
+REGRAS DE .NET E CLEAN CODE
+=====================
+
+- Versão: .NET 8 para todos os projetos novos.
+- Idioma principal de código: C#.
+- Evitar:
+  - Services "Deus" com 30 responsabilidades.
+  - Métodos gigantes, muitos parâmetros primitivos – prefira DTOs.
+  - Lógica de negócio em controllers ou DataSource.
+- Aplicar SOLID:
+  - Single Responsibility (cada classe com um motivo claro de mudança).
+  - Dependency Inversion (UseCases dependem de interfaces, não implementações).
+- Injeção de dependência:
+  - Feita na borda (Api e Lambda), injetando UseCases e Gateways concretos.
+  - Core (Domain/UseCases/Gateways) não usa container DI diretamente.
+
+### Gerenciamento de Solução (.sln/.slnx)
+- **SEMPRE adicionar novos projetos ao arquivo de solução após criá-los**
+- Ao criar um novo projeto class library ou qualquer projeto .NET, executar: `dotnet sln <arquivo-solucao> add <caminho-projeto>`
+- **Organização correta no arquivo de solução:**
+  - Projetos devem estar na raiz da solução, não dentro de pastas virtuais desnecessárias
+  - Manter a mesma estrutura de diretórios físicos (src/, tests/) mas sem criar pastas virtuais no .slnx/.sln
+  - Projetos em `src/` devem aparecer diretamente na raiz da solução no Solution Explorer
+  - Projetos em `tests/` também devem aparecer diretamente na raiz da solução
+- Verificar que o projeto aparece no Solution Explorer do Visual Studio após adicionar
+- Se o projeto aparecer dentro de uma pasta virtual incorreta, remover e readicionar sem especificar pasta
+- Isso garante que o projeto seja visível no IDE e possa ser gerenciado corretamente
+- **Esta regra se aplica a TODOS os projetos .NET do ecossistema FastFood**
+
+=====================
+REGRAS DE TESTES
+=====================
+
+- Todo microsserviço precisa:
+  - Projeto de testes unitários.
+  - Ao menos 1 cenário BDD representando o fluxo principal:
+    - Exemplo: "Cliente cria pedido → pedido vai para pagamento" (OrderHub + PayStream).
+  - Meta de cobertura: 80% (ou o mais próximo possível, mas sempre escrever testes ao criar código).
+- Testes preferenciais:
+  - UseCases, com Gateways mockados.
+  - Controllers, testando o contrato HTTP (mínimo).
+- Em toda subtask, SEMPRE definir:
+  - O que deve ser testado (unidade, integração, BDD).
+  - Como rodar os testes (comando `dotnet test` ou alvo específico).
+
+=====================
+REGRAS DE CI/CD E QUALIDADE
+=====================
+
+- Cada repositório terá GitHub Actions com:
+  - Build + Test.
+  - Análise de qualidade (SonarQube/SonarCloud).
+  - Docker build + push para ECR (quando for serviço HTTP).
+  - Deploy automatizado (Terraform ou kubectl) após merge na main.
+- Branch main/master:
+  - Protegida (sem push direto).
+  - Somente PR com:
+    - Build OK
+    - Testes OK
+    - Sonar Quality Gate OK
+- Sempre que copiar código do projeto monolito anterior (`fastfood-api`):
+  - Copie APENAS o que é necessário.
+  - Remova dependências desnecessárias.
+  - Adapte nomenclaturas e namespaces para o novo contexto.
+  - Atualize testes para refletir o comportamento do microsserviço.
