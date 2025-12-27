@@ -1,0 +1,164 @@
+name: Deploy to EKS
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Push to ECR"]
+    types:
+      - completed
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: eks-paystream
+  KUBERNETES_NAMESPACE: orderhub
+  DEPLOYMENT_NAME: orderhub-api
+  CONTAINER_NAME: api
+  ECR_REPOSITORY: fiap-fase4-infra-orderhub-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        # v4.1.1
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+
+      - name: Configure AWS credentials
+        # v4.0.2 - Obter SHA do commit da versão v4.0.2 em: https://github.com/aws-actions/configure-aws-credentials
+        # Substituir pelo SHA completo do commit da versão desejada
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        # v2.2.0 - Obter SHA do commit da versão v2.2.0 em: https://github.com/aws-actions/amazon-ecr-login
+        # Substituir pelo SHA completo do commit da versão desejada
+        # TODO: Substituir @v2 pelo SHA completo do commit
+        uses: aws-actions/amazon-ecr-login@v2
+        id: ecr-login
+
+      - name: Set up kubectl
+        # v4.0.0 - Obter SHA do commit da versão v4.0.0 em: https://github.com/azure/setup-kubectl
+        # Substituir pelo SHA completo do commit da versão desejada
+        # TODO: Substituir @v4 pelo SHA completo do commit
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          IMAGE_TAG=$(git rev-parse --short HEAD)
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Image tag: $IMAGE_TAG"
+
+      - name: Validate images in ECR before deploy
+        run: |
+          echo "Validating images in ECR before deploy..."
+          API_IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:api-${{ steps.image-tag.outputs.tag }}"
+          MIGRATOR_IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:migrator-${{ steps.image-tag.outputs.tag }}"
+          
+          echo "Checking API image: $API_IMAGE"
+          aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --image-ids imageTag=api-${{ steps.image-tag.outputs.tag }} \
+            --region ${{ env.AWS_REGION }} || exit 1
+          
+          echo "Checking Migrator image: $MIGRATOR_IMAGE"
+          aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --image-ids imageTag=migrator-${{ steps.image-tag.outputs.tag }} \
+            --region ${{ env.AWS_REGION }} || exit 1
+          
+          echo "Images validated successfully!"
+
+      - name: Update API deployment
+        id: update-deployment
+        run: |
+          FULL_IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:api-${{ steps.image-tag.outputs.tag }}"
+          echo "Updating deployment ${{ env.DEPLOYMENT_NAME }} with image: $FULL_IMAGE"
+          
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
+            ${{ env.CONTAINER_NAME }}=$FULL_IMAGE \
+            -n ${{ env.KUBERNETES_NAMESPACE }}
+          
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+            -n ${{ env.KUBERNETES_NAMESPACE }} \
+            --timeout=5m || {
+              echo "Rollout failed, attempting rollback..."
+              kubectl rollout undo deployment/${{ env.DEPLOYMENT_NAME }} -n ${{ env.KUBERNETES_NAMESPACE }}
+              exit 1
+            }
+          
+          echo "Deployment updated successfully!"
+
+      - name: Create Migrator Job
+        id: create-migrator-job
+        run: |
+          TIMESTAMP=$(date +%s)
+          JOB_NAME="orderhub-migrator-$TIMESTAMP"
+          MIGRATOR_IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:migrator-${{ steps.image-tag.outputs.tag }}"
+          
+          echo "Creating Migrator Job: $JOB_NAME"
+          echo "Using image: $MIGRATOR_IMAGE"
+          
+          # Criar Job usando manifest YAML inline
+          cat <<EOF | kubectl apply -f -
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: $JOB_NAME
+            namespace: ${{ env.KUBERNETES_NAMESPACE }}
+            labels:
+              app: orderhub-migrator
+          spec:
+            template:
+              spec:
+                containers:
+                - name: migrator
+                  image: $MIGRATOR_IMAGE
+                restartPolicy: Never
+          EOF
+          
+          echo "job-name=$JOB_NAME" >> $GITHUB_OUTPUT
+          echo "Migrator Job created: $JOB_NAME"
+
+      - name: Wait for Migrator Job completion
+        run: |
+          JOB_NAME="${{ steps.create-migrator-job.outputs.job-name }}"
+          echo "Waiting for Migrator Job to complete: $JOB_NAME"
+          
+          kubectl wait --for=condition=complete \
+            --timeout=10m \
+            job/$JOB_NAME \
+            -n ${{ env.KUBERNETES_NAMESPACE }} || {
+              echo "Job failed or timed out. Checking logs..."
+              kubectl logs job/$JOB_NAME -n ${{ env.KUBERNETES_NAMESPACE }} || true
+              exit 1
+            }
+          
+          echo "Migrator Job completed successfully!"
+
+      - name: Output deployment status
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.KUBERNETES_NAMESPACE }} -o wide
+          echo ""
+          echo "=== Pods Status ==="
+          kubectl get pods -n ${{ env.KUBERNETES_NAMESPACE }} -l app=${{ env.DEPLOYMENT_NAME }} || true
+          echo ""
+          echo "=== Migrator Job Status ==="
+          kubectl get jobs -n ${{ env.KUBERNETES_NAMESPACE }} -l app=orderhub-migrator || true
+
