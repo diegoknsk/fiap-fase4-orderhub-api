@@ -29,3 +29,4 @@ Criar o projeto Migrator como Console Application .NET 8, que será usado futura
 - [ ] `dotnet run` executa e mostra "migrator pedidos" no console
 - [ ] Projeto pronto para futuras implementações de migração DynamoDB
 
+

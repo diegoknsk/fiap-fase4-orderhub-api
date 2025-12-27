@@ -16,9 +16,9 @@ Criar a estrutura completa do projeto .NET 8 seguindo Clean Architecture, inclui
   - `FastFood.OrderHub.sln` (solução)
   - `src/Core/FastFood.OrderHub.Domain/` (projeto Domain)
   - `src/Core/FastFood.OrderHub.Application/` (projeto Application)
-  - `src/Core/FastFood.OrderHub.Infra/` (projeto Infra)
-  - `src/Core/FastFood.OrderHub.Infra.Persistence/` (projeto Infra.Persistence)
   - `src/Core/FastFood.OrderHub.CrossCutting/` (projeto CrossCutting)
+  - `src/Infra/FastFood.OrderHub.Infra/` (projeto Infra)
+  - `src/Infra/FastFood.OrderHub.Infra.Persistence/` (projeto Infra.Persistence)
   - `src/InterfacesExternas/FastFood.OrderHub.Api/` (projeto API)
   - `src/InterfacesExternas/FastFood.OrderHub.Migrator/` (projeto Migrator)
   - `src/tests/FastFood.OrderHub.Tests.Unit/` (projeto de testes)
@@ -27,7 +27,7 @@ Criar a estrutura completa do projeto .NET 8 seguindo Clean Architecture, inclui
 ## Subtasks
 
 - [x] [Subtask 01: Criar estrutura de pastas e solução .NET](./subtask/Subtask-01-Criar_estrutura_pastas_solucao.md) - *Data de Conclusão: 25/12/2025*
-- [x] [Subtask 02: Criar projetos das camadas Core (Domain, Application, Infra)](./subtask/Subtask-02-Criar_projetos_camadas_core.md) - *Data de Conclusão: 25/12/2025*
+- [x] [Subtask 02: Criar projetos das camadas Core (Domain, Application) e Infra](./subtask/Subtask-02-Criar_projetos_camadas_core.md) - *Data de Conclusão: 25/12/2025*
 - [x] [Subtask 03: Criar projetos Infra.Persistence e CrossCutting](./subtask/Subtask-03-Criar_projetos_infra_crosscutting.md) - *Data de Conclusão: 25/12/2025*
 - [x] [Subtask 04: Criar projeto API e configurar Dependency Injection](./subtask/Subtask-04-Criar_projeto_api_configurar_di.md) - *Data de Conclusão: 25/12/2025*
 - [x] [Subtask 05: Implementar rota "olá mundo" e configurar Swagger](./subtask/Subtask-05-Implementar_rota_ola_mundo_swagger.md) - *Data de Conclusão: 25/12/2025*

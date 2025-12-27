@@ -10,14 +10,18 @@ Criar Dockerfile multi-stage para a API OrderHub, otimizando o tamanho da imagem
 ## Passos de implementação
 - [ ] Criar arquivo `Dockerfile` no diretório `src/InterfacesExternas/FastFood.OrderHub.Api/`
 - [ ] Implementar estágio de build usando `mcr.microsoft.com/dotnet/sdk:8.0`
-- [ ] Configurar WORKDIR e copiar arquivos do projeto
+- [ ] Configurar WORKDIR e copiar arquivos .csproj primeiro (otimização de cache)
 - [ ] Executar `dotnet restore` para restaurar dependências
-- [ ] Executar `dotnet publish` com configurações de Release
+- [ ] Copiar todo o código fonte
+- [ ] Executar `dotnet publish` com configurações de Release e flags de otimização:
+  - `/p:CopyOutputSymbolsToPublishDirectory=false`
+  - `/p:CopyOutputXmlDocumentationToPublishDirectory=false`
 - [ ] Implementar estágio de runtime usando `mcr.microsoft.com/dotnet/aspnet:8.0`
 - [ ] Copiar artefatos publicados do estágio de build
-- [ ] Configurar variáveis de ambiente (ASPNETCORE_URLS, ASPNETCORE_ENVIRONMENT)
+- [ ] Copiar arquivo `appsettings.json` se necessário
+- [ ] Configurar variável de ambiente `ASPNETCORE_URLS=http://+:80`
 - [ ] Expor porta 80
-- [ ] Configurar ENTRYPOINT para executar a aplicação
+- [ ] Configurar ENTRYPOINT para executar `FastFood.OrderHub.Api.dll`
 
 ## Como testar
 - Executar `docker build -t orderhub-api -f src/InterfacesExternas/FastFood.OrderHub.Api/Dockerfile .` na raiz do projeto (deve completar sem erros)
@@ -34,4 +38,5 @@ Criar Dockerfile multi-stage para a API OrderHub, otimizando o tamanho da imagem
 - [ ] Porta 80 exposta e configurada corretamente
 - [ ] Container executa e API responde localmente
 - [ ] Tamanho da imagem otimizado (sem SDK no estágio final)
+
 

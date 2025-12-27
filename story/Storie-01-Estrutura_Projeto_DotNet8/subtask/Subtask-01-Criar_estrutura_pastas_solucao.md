@@ -28,3 +28,4 @@ Criar a estrutura de diretórios conforme definido nas regras do projeto e criar
 - [ ] Comando `dotnet sln list` executa sem erros
 - [ ] Estrutura de pastas segue o padrão definido em `orderhub-context.mdc`
 
+

@@ -47,6 +47,9 @@ projeto/
 │   ├── Core/                          # Camadas que utilizamos (lógica de negócio)
 │   │   ├── FastFood.Auth.Application  # UseCases, Ports, InputModels, OutputModels, Presenters
 │   │   ├── FastFood.Auth.Domain       # Entidades, VOs, validações, invariantes
+│   │   └── FastFood.Auth.CrossCutting # Extensões e configurações compartilhadas
+│   │
+│   ├── Infra/                         # Camadas de infraestrutura
 │   │   ├── FastFood.Auth.Infra        # Serviços externos: Cognito, Token, etc.
 │   │   └── FastFood.Auth.Infra.Persistence  # PostgreSQL com EF Core
 │   │
@@ -67,7 +70,8 @@ projeto/
 
 ### Regras de Organização
 
-- **Core**: Contém toda a lógica de negócio e regras de domínio. Estas são as camadas que o sistema utiliza para processar informações.
+- **Core**: Contém toda a lógica de negócio e regras de domínio. Estas são as camadas que o sistema utiliza para processar informações (Domain, Application, CrossCutting).
+- **Infra**: Contém implementações de infraestrutura (serviços externos, persistência). Estas são as camadas que implementam os contratos definidos na Application (Infra, Infra.Persistence).
 - **InterfacesExternas**: Contém adapters de entrada/saída (APIs, Lambdas, Console Apps). Estas são as camadas que o sistema usa para se comunicar com o mundo externo.
 - **tests**: Todos os testes automatizados (unitários, integração, BDD).
 - **story**: Documentação técnica das histórias de desenvolvimento.
@@ -594,6 +598,8 @@ src/
   Core/                    # Camadas que utilizamos (lógica de negócio)
     FastFood.Auth.Application/
     FastFood.Auth.Domain/
+    FastFood.Auth.CrossCutting/
+  Infra/                   # Camadas de infraestrutura
     FastFood.Auth.Infra/
     FastFood.Auth.Infra.Persistence/
   InterfacesExternas/      # Camadas que usamos (adapters)

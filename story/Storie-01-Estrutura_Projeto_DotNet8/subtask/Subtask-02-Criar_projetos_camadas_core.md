@@ -1,16 +1,16 @@
-# Subtask 02: Criar projetos das camadas Core (Domain, Application, Infra)
+# Subtask 02: Criar projetos das camadas Core (Domain, Application) e Infra
 
 ## Status
 - **Estado:** 🔄 Em desenvolvimento
 - **Data de Conclusão:** [DD/MM/AAAA]
 
 ## Descrição
-Criar os três primeiros projetos das camadas core: Domain (sem dependências), Application (depende de Domain) e Infra (depende de Application). Configurar as referências entre projetos e adicionar todos à solução.
+Criar os três primeiros projetos: Domain (sem dependências) e Application (depende de Domain) na camada Core, e Infra (depende de Application) na camada Infra. Configurar as referências entre projetos e adicionar todos à solução.
 
 ## Passos de implementação
 - [ ] Criar projeto `FastFood.OrderHub.Domain` em `src/Core/FastFood.OrderHub.Domain/` como class library .NET 8
 - [ ] Criar projeto `FastFood.OrderHub.Application` em `src/Core/FastFood.OrderHub.Application/` como class library .NET 8
-- [ ] Criar projeto `FastFood.OrderHub.Infra` em `src/Core/FastFood.OrderHub.Infra/` como class library .NET 8
+- [ ] Criar projeto `FastFood.OrderHub.Infra` em `src/Infra/FastFood.OrderHub.Infra/` como class library .NET 8
 - [ ] Adicionar referência de Application para Domain
 - [ ] Adicionar referência de Infra para Application
 - [ ] Adicionar todos os projetos à solução usando `dotnet sln add`

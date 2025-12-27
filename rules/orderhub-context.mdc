@@ -123,19 +123,20 @@ fiap-fase4-orderhub-api/
 │   │   │   ├── Ports/              # Interfaces de Gateways (IOrderGateway, IProductGateway, ISqsGateway)
 │   │   │   └── FastFood.OrderHub.Application.csproj
 │   │   │
+│   │   └── FastFood.OrderHub.CrossCutting/
+│   │       ├── Extensions/         # Extensões (ServiceCollectionExtensions, etc.)
+│   │       └── FastFood.OrderHub.CrossCutting.csproj
+│   │
+│   ├── Infra/
 │   │   ├── FastFood.OrderHub.Infra/
 │   │   │   ├── Services/          # Implementações de serviços externos (SQS, etc.)
 │   │   │   └── FastFood.OrderHub.Infra.csproj
 │   │   │
-│   │   ├── FastFood.OrderHub.Infra.Persistence/
-│   │   │   ├── Repositories/      # Implementações de repositórios DynamoDB
-│   │   │   ├── Entities/          # Entidades de persistência (se necessário)
-│   │   │   ├── Configurations/    # Configurações DynamoDB (se necessário)
-│   │   │   └── FastFood.OrderHub.Infra.Persistence.csproj
-│   │   │
-│   │   └── FastFood.OrderHub.CrossCutting/
-│   │       ├── Extensions/         # Extensões (ServiceCollectionExtensions, etc.)
-│   │       └── FastFood.OrderHub.CrossCutting.csproj
+│   │   └── FastFood.OrderHub.Infra.Persistence/
+│   │       ├── Repositories/      # Implementações de repositórios DynamoDB
+│   │       ├── Entities/          # Entidades de persistência (se necessário)
+│   │       ├── Configurations/    # Configurações DynamoDB (se necessário)
+│   │       └── FastFood.OrderHub.Infra.Persistence.csproj
 │   │
 │   ├── InterfacesExternas/
 │   │   ├── FastFood.OrderHub.Api/  # API HTTP ASP.NET Core (para EKS)
@@ -160,8 +161,9 @@ fiap-fase4-orderhub-api/
 ```
 
 **Organização da Solução (.sln):**
-- Usar pastas virtuais no .sln para organização: `src`, `Core`, `InterfacesExternas`, `Tests`
-- Projetos Core dentro de `Core`
+- Usar pastas virtuais no .sln para organização: `src`, `Core`, `Infra`, `InterfacesExternas`, `Tests`
+- Projetos Core dentro de `Core` (Domain, Application, CrossCutting)
+- Projetos de Infra dentro de `Infra` (Infra, Infra.Persistence)
 - Projetos de API/Migrator dentro de `InterfacesExternas`
 - Projetos de testes dentro de `Tests`
 - **SEMPRE adicionar novos projetos ao arquivo de solução após criá-los**

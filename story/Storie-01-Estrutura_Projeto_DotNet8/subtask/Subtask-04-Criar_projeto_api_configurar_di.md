@@ -34,3 +34,4 @@ Criar o projeto ASP.NET Core Web API, configurar Dependency Injection básica, e
 - [ ] `dotnet build` executa sem erros
 - [ ] API inicia sem erros (mesmo sem endpoints)
 
+
