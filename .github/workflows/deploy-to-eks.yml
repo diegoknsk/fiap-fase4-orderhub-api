@@ -49,6 +49,7 @@ jobs:
       id: image-tag
       run: |
         if [ -z "${{ github.event.inputs.image_tag }}" ]; then
+          # Usar SHA curto do commit, igual ao push-to-ecr
           IMAGE_TAG=$(git rev-parse --short HEAD)
         else
           IMAGE_TAG="${{ github.event.inputs.image_tag }}"
@@ -56,16 +57,65 @@ jobs:
         echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
         echo "Image Tag: ${IMAGE_TAG}"
 
-    - name: Validate images exist in ECR
+    - name: Validate and resolve image tags
+      id: resolve-tags
       env:
         ECR_REGISTRY: ${{ steps.ecr-registry.outputs.registry }}
         IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
       run: |
         echo "Validating images exist in ECR..."
-        aws ecr describe-images --repository-name ${ECR_REPOSITORY} --image-ids imageTag=api-${IMAGE_TAG} --region ${AWS_REGION} || exit 1
-        if [ "${{ github.event.inputs.skip_migrator }}" != "true" ]; then
-          aws ecr describe-images --repository-name ${ECR_REPOSITORY} --image-ids imageTag=migrator-${IMAGE_TAG} --region ${AWS_REGION} || exit 1
+        
+        # Função para verificar se uma tag existe
+        check_tag_exists() {
+          local tag=$1
+          aws ecr describe-images \
+            --repository-name ${ECR_REPOSITORY} \
+            --image-ids imageTag=${tag} \
+            --region ${AWS_REGION} \
+            --query 'imageDetails[0].imageTags[0]' \
+            --output text 2>/dev/null
+        }
+        
+        # Tentar usar a tag específica primeiro
+        API_TAG="api-${IMAGE_TAG}"
+        MIGRATOR_TAG="migrator-${IMAGE_TAG}"
+        
+        # Verificar tag da API
+        if check_tag_exists "${API_TAG}" > /dev/null 2>&1; then
+          echo "API image found with tag: ${API_TAG}"
+          echo "api-tag=${API_TAG}" >> $GITHUB_OUTPUT
+        else
+          echo "Warning: API image with tag '${API_TAG}' not found. Trying 'api-latest'..."
+          if check_tag_exists "api-latest" > /dev/null 2>&1; then
+            echo "API image found with tag: api-latest"
+            echo "api-tag=api-latest" >> $GITHUB_OUTPUT
+          else
+            echo "Error: Neither '${API_TAG}' nor 'api-latest' found in ECR repository ${ECR_REPOSITORY}"
+            echo "Available tags:"
+            aws ecr list-images --repository-name ${ECR_REPOSITORY} --region ${AWS_REGION} --query 'imageIds[*].imageTag' --output table || true
+            exit 1
+          fi
         fi
+        
+        # Verificar tag do Migrator (se não for skip)
+        if [ "${{ github.event.inputs.skip_migrator }}" != "true" ]; then
+          if check_tag_exists "${MIGRATOR_TAG}" > /dev/null 2>&1; then
+            echo "Migrator image found with tag: ${MIGRATOR_TAG}"
+            echo "migrator-tag=${MIGRATOR_TAG}" >> $GITHUB_OUTPUT
+          else
+            echo "Warning: Migrator image with tag '${MIGRATOR_TAG}' not found. Trying 'migrator-latest'..."
+            if check_tag_exists "migrator-latest" > /dev/null 2>&1; then
+              echo "Migrator image found with tag: migrator-latest"
+              echo "migrator-tag=migrator-latest" >> $GITHUB_OUTPUT
+            else
+              echo "Error: Neither '${MIGRATOR_TAG}' nor 'migrator-latest' found in ECR repository ${ECR_REPOSITORY}"
+              echo "Available tags:"
+              aws ecr list-images --repository-name ${ECR_REPOSITORY} --region ${AWS_REGION} --query 'imageIds[*].imageTag' --output table || true
+              exit 1
+            fi
+          fi
+        fi
+        
         echo "Images validated successfully!"
 
     - name: Install kubectl
@@ -94,10 +144,10 @@ jobs:
     - name: Update API deployment image
       env:
         ECR_REGISTRY: ${{ steps.ecr-registry.outputs.registry }}
-        IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        API_TAG: ${{ steps.resolve-tags.outputs.api-tag }}
       run: |
         echo "Updating deployment image..."
-        FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:api-${IMAGE_TAG}"
+        FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${API_TAG}"
         echo "Setting image to: ${FULL_IMAGE}"
         kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${FULL_IMAGE} -n ${KUBERNETES_NAMESPACE}
         echo "Deployment image updated successfully!"
@@ -120,12 +170,12 @@ jobs:
       id: create-migrator-job
       env:
         ECR_REGISTRY: ${{ steps.ecr-registry.outputs.registry }}
-        IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        MIGRATOR_TAG: ${{ steps.resolve-tags.outputs.migrator-tag }}
       run: |
         echo "Creating Migrator Job..."
         # Jobs não podem ser atualizados, então criamos um novo com timestamp único
         JOB_NAME="orderhub-migrator-$(date +%s)"
-        FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:migrator-${IMAGE_TAG}"
+        FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${MIGRATOR_TAG}"
         echo "Job name: ${JOB_NAME}"
         echo "Image: ${FULL_IMAGE}"
         echo "job-name=${JOB_NAME}" >> $GITHUB_OUTPUT
