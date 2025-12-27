@@ -19,6 +19,7 @@ env:
   KUBERNETES_NAMESPACE: orderhub
   DEPLOYMENT_NAME: orderhub-api
   CONTAINER_NAME: api
+  ECR_REPOSITORY: fiap-fase4-infra-orderhub-api
 
 jobs:
   deploy:
@@ -48,7 +49,7 @@ jobs:
       id: image-tag
       run: |
         if [ -z "${{ github.event.inputs.image_tag }}" ]; then
-          IMAGE_TAG="${{ github.sha }}"
+          IMAGE_TAG=$(git rev-parse --short HEAD)
         else
           IMAGE_TAG="${{ github.event.inputs.image_tag }}"
         fi
@@ -59,11 +60,12 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.ecr-registry.outputs.registry }}
         IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
-        ECR_REPOSITORY: fiap-fase4-infra-orderhub-api
       run: |
         echo "Validating images exist in ECR..."
         aws ecr describe-images --repository-name ${ECR_REPOSITORY} --image-ids imageTag=api-${IMAGE_TAG} --region ${AWS_REGION} || exit 1
-        aws ecr describe-images --repository-name ${ECR_REPOSITORY} --image-ids imageTag=migrator-${IMAGE_TAG} --region ${AWS_REGION} || exit 1
+        if [ "${{ github.event.inputs.skip_migrator }}" != "true" ]; then
+          aws ecr describe-images --repository-name ${ECR_REPOSITORY} --image-ids imageTag=migrator-${IMAGE_TAG} --region ${AWS_REGION} || exit 1
+        fi
         echo "Images validated successfully!"
 
     - name: Install kubectl
@@ -73,16 +75,26 @@ jobs:
 
     - name: Configure kubectl for EKS
       run: |
+        echo "Configuring kubectl for EKS cluster: ${EKS_CLUSTER_NAME}"
         aws eks update-kubeconfig \
           --name ${EKS_CLUSTER_NAME} \
           --region ${AWS_REGION}
         kubectl version --client
+        echo "kubectl configured successfully!"
+
+    - name: Verify deployment exists
+      run: |
+        echo "Verifying deployment exists..."
+        if ! kubectl get deployment ${DEPLOYMENT_NAME} -n ${KUBERNETES_NAMESPACE} &>/dev/null; then
+          echo "Error: Deployment ${DEPLOYMENT_NAME} not found in namespace ${KUBERNETES_NAMESPACE}"
+          exit 1
+        fi
+        echo "Deployment ${DEPLOYMENT_NAME} found!"
 
     - name: Update API deployment image
       env:
         ECR_REGISTRY: ${{ steps.ecr-registry.outputs.registry }}
         IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
-        ECR_REPOSITORY: fiap-fase4-infra-orderhub-api
       run: |
         echo "Updating deployment image..."
         FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:api-${IMAGE_TAG}"
@@ -105,10 +117,10 @@ jobs:
 
     - name: Create and execute Migrator Job
       if: ${{ !github.event.inputs.skip_migrator }}
+      id: create-migrator-job
       env:
         ECR_REGISTRY: ${{ steps.ecr-registry.outputs.registry }}
         IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
-        ECR_REPOSITORY: fiap-fase4-infra-orderhub-api
       run: |
         echo "Creating Migrator Job..."
         # Jobs não podem ser atualizados, então criamos um novo com timestamp único
@@ -116,6 +128,7 @@ jobs:
         FULL_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:migrator-${IMAGE_TAG}"
         echo "Job name: ${JOB_NAME}"
         echo "Image: ${FULL_IMAGE}"
+        echo "job-name=${JOB_NAME}" >> $GITHUB_OUTPUT
         
         # Criar job baseado no template do projeto de infra, mas com nome único e imagem atualizada
         cat <<EOF | kubectl apply -f -
@@ -161,31 +174,40 @@ jobs:
 
     - name: Wait for Migrator Job completion
       if: ${{ !github.event.inputs.skip_migrator }}
+      env:
+        JOB_NAME: ${{ steps.create-migrator-job.outputs.job-name }}
       run: |
         echo "Waiting for Migrator Job to complete..."
-        # Buscar o nome do job mais recente
-        JOB_NAME=$(kubectl get jobs -n ${KUBERNETES_NAMESPACE} -l app=orderhub-migrator --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}')
-        if [ -n "${JOB_NAME}" ]; then
-          echo "Waiting for job: ${JOB_NAME}"
-          kubectl wait --for=condition=complete --timeout=10m job/${JOB_NAME} -n ${KUBERNETES_NAMESPACE} || true
-          echo "Migrator Job completed!"
+        if [ -z "${JOB_NAME}" ]; then
+          echo "Error: Job name not found!"
+          exit 1
+        fi
+        echo "Waiting for job: ${JOB_NAME}"
+        if kubectl wait --for=condition=complete --timeout=10m job/${JOB_NAME} -n ${KUBERNETES_NAMESPACE} 2>/dev/null; then
+          echo "Migrator Job completed successfully!"
         else
-          echo "No Migrator Job found!"
+          echo "Job did not complete successfully. Checking logs..."
+          kubectl logs -l app=orderhub-migrator -n ${KUBERNETES_NAMESPACE} --tail=100 || true
+          kubectl describe job ${JOB_NAME} -n ${KUBERNETES_NAMESPACE} || true
           exit 1
         fi
 
     - name: Verify Migrator Job
       if: ${{ !github.event.inputs.skip_migrator }}
+      env:
+        JOB_NAME: ${{ steps.create-migrator-job.outputs.job-name }}
       run: |
         echo "Verifying Migrator Job..."
-        JOB_NAME=$(kubectl get jobs -n ${KUBERNETES_NAMESPACE} -l app=orderhub-migrator --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1].metadata.name}')
         if [ -n "${JOB_NAME}" ]; then
+          echo "Job name: ${JOB_NAME}"
           kubectl get job ${JOB_NAME} -n ${KUBERNETES_NAMESPACE}
           kubectl get pods -l app=orderhub-migrator -n ${KUBERNETES_NAMESPACE}
-          kubectl logs -l app=orderhub-migrator -n ${KUBERNETES_NAMESPACE} --tail=50 || true
+          echo "--- Migrator Job Logs ---"
+          kubectl logs -l app=orderhub-migrator -n ${KUBERNETES_NAMESPACE} --tail=100 || true
+          echo "--- End of Logs ---"
           echo "Migrator Job verified!"
         else
-          echo "No Migrator Job found!"
+          echo "Warning: Job name not found!"
         fi
 
     - name: Rollback on failure
