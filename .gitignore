@@ -52,3 +52,22 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.csproj.user
+*.vbproj.user
+*.rsuser
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains Rider
+.idea/
+*.sln.iml

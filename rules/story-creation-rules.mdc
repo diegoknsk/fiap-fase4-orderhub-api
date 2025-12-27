@@ -1,0 +1,493 @@
+---
+alwaysApply: true
+---
+
+# Regras para Criação de Histórias (Stories)
+
+Este documento define o padrão completo para criação de histórias técnicas de infraestrutura no repositório.
+
+## 📁 Estrutura de Pastas
+
+### Nomenclatura da Pasta da História
+
+**Formato obrigatório:**
+```
+Storie-XX-Descricao_Breve_Da_Historia
+```
+
+**Regras:**
+- Sempre começar com `Storie-` seguido do número com 2 dígitos (01, 02, 03...)
+- Número deve ser sequencial e único
+- Descrição deve ser curta (máximo 5-6 palavras)
+- Usar underscore (`_`) para separar palavras na descrição
+- Descrição deve ser clara e permitir identificar o conteúdo apenas pelo nome da pasta
+- Primeira letra de cada palavra em maiúscula (PascalCase para palavras, snake_case para separação)
+
+**Exemplos corretos:**
+- `Storie-01-Backend_Terraform_S3`
+- `Storie-05-Modulo_Cluster_EKS`
+- `Storie-12-Security_Groups_EKS`
+- `Storie-15-Padronizacao_Variaveis_Ambientes`
+
+**Exemplos incorretos:**
+- `Storie-1-Backend` (número sem zero à esquerda)
+- `Storie-01-backend-terraform` (usar hífen em vez de underscore)
+- `Storie-01-BackendTerraformS3` (sem separação, difícil de ler)
+
+### Estrutura Interna da Pasta
+
+```
+Storie-XX-Descricao/
+├── story.md                    # Arquivo principal da história
+└── subtask/                    # Pasta contendo todas as subtasks
+    ├── Subtask-01-Nome.md
+    ├── Subtask-02-Nome.md
+    └── Subtask-03-Nome.md
+```
+
+**Regras:**
+- Sempre ter um arquivo `story.md` na raiz da pasta
+- Sempre ter uma pasta `subtask/` (mesmo que vazia inicialmente)
+- Nenhum outro arquivo na raiz da pasta da história
+
+## 📝 Formato do Arquivo story.md
+
+### Estrutura Obrigatória
+
+```markdown
+# Storie-XX: Título da História
+
+## Status
+- **Estado:** 🔄 Em desenvolvimento | ✅ Concluída | ⏸️ Pausada
+- **Data de Conclusão:** [DD/MM/AAAA] (preencher quando concluída)
+
+## Descrição
+Como [papel], quero [ação], para [benefício].
+
+## Objetivo
+[Descrição clara e objetiva do que será entregue]
+
+## Escopo Técnico
+- Tecnologias: [Lista de tecnologias]
+- Arquivos afetados: [Lista de arquivos/caminhos]
+- Recursos AWS: [Lista de recursos AWS que serão criados]
+
+## Subtasks
+
+- [ ] [Subtask 01: Nome da subtask](./subtask/Subtask-01-Nome_da_subtask.md) - *Data de Conclusão: [DD/MM/AAAA]*
+- [ ] [Subtask 02: Nome da subtask](./subtask/Subtask-02-Nome_da_subtask.md) - *Data de Conclusão: [DD/MM/AAAA]*
+- [ ] [Subtask 03: Nome da subtask](./subtask/Subtask-03-Nome_da_subtask.md) - *Data de Conclusão: [DD/MM/AAAA]*
+
+## Critérios de Aceite da História
+
+- [ ] Critério 1 (específico e mensurável)
+- [ ] Critério 2 (específico e mensurável)
+- [ ] Critério 3 (específico e mensurável)
+```
+
+### Regras de Escrita do story.md
+
+1. **Status:**
+   - Campo obrigatório que indica o estado atual da história
+   - Estados possíveis: 🔄 Em desenvolvimento | ✅ Concluída | ⏸️ Pausada
+   - Quando uma história for concluída, deve-se:
+     - Alterar o estado para "✅ Concluída"
+     - Preencher a data de conclusão no formato DD/MM/AAAA
+   - Este campo deve ser atualizado sempre que o status da história mudar
+
+2. **Título:**
+   - Formato: `# Storie-XX: Título da História`
+   - Título deve ser claro e descritivo
+   - Máximo 10 palavras
+
+3. **Descrição:**
+   - Usar formato "Como... quero... para..."
+   - Ser específico sobre o papel (ex: "engenheiro de plataforma")
+   - Ação deve ser clara e objetiva
+   - Benefício deve ser mensurável ou observável
+
+4. **Objetivo:**
+   - Uma única frase ou parágrafo curto
+   - Deve explicar O QUE será entregue, não COMO
+   - Focar no resultado final
+
+5. **Escopo Técnico:**
+   - Listar tecnologias específicas (ex: "Terraform, AWS EKS")
+   - Listar arquivos/caminhos que serão criados/modificados
+   - Listar recursos AWS que serão provisionados
+   - Ser específico, não genérico
+
+6. **Subtasks:**
+   - Mínimo 3 subtasks, máximo 8 subtasks
+   - Cada subtask deve ser uma ação específica e testável
+   - Ordem deve fazer sentido lógico (dependências)
+   - Links devem usar caminho relativo: `./subtask/Subtask-XX-Nome.md`
+   - **Marcação de Conclusão (OBRIGATÓRIO)**:
+     - Usar checkbox `- [ ]` para subtasks não concluídas
+     - Usar checkbox `- [x]` para subtasks concluídas
+     - **Sempre preencher a data de conclusão** quando marcar como concluída
+     - Formato: `- [x] [Subtask XX: Nome](./subtask/Subtask-XX-Nome.md) - *Data de Conclusão: DD/MM/AAAA*`
+   - **Atualização Contínua**: As subtasks devem ser marcadas como concluídas à medida que são desenvolvidas, não apenas no final da história
+
+7. **Critérios de Aceite:**
+   - Mínimo 5 critérios, ideal 7-10
+   - Cada critério deve ser:
+     - Específico (não genérico)
+     - Mensurável (pode ser validado)
+     - Testável (pode ser verificado)
+   - Usar formato de checklist: `- [ ]`
+   - Incluir critérios de:
+     - Funcionalidade (o que foi criado)
+     - Qualidade (validações, testes)
+     - Documentação (se aplicável)
+
+## 📋 Formato do Arquivo de Subtask
+
+### Nomenclatura da Subtask
+
+**Formato obrigatório:**
+```
+Subtask-XX-Nome_Da_Subtask.md
+```
+
+**Regras:**
+- Sempre começar com `Subtask-` seguido do número com 2 dígitos (01, 02, 03...)
+- Número deve ser sequencial dentro da história
+- Nome deve ser curto e descritivo (máximo 4-5 palavras)
+- Usar underscore (`_`) para separar palavras
+- Primeira letra de cada palavra em maiúscula
+
+**Exemplos corretos:**
+- `Subtask-01-Criar_modulo_Terraform_backend_S3.md`
+- `Subtask-02-Configurar_backend_tf_principal.md`
+- `Subtask-03-Adicionar_IAM_policies_minimas_backend.md`
+
+### Estrutura Obrigatória da Subtask
+
+```markdown
+# Subtask XX: Nome da Subtask
+
+## Status
+- **Estado:** 🔄 Em desenvolvimento | ✅ Concluída
+- **Data de Conclusão:** [DD/MM/AAAA] (preencher quando concluída)
+
+## Descrição
+[Uma ou duas frases explicando exatamente o que será feito nesta subtask]
+
+## Passos de implementação
+- [ ] [Passo 1 específico e acionável]
+- [ ] [Passo 2 específico e acionável]
+- [ ] [Passo 3 específico e acionável]
+
+## Como testar
+- [Teste 1: Como validar este passo]
+- [Teste 2: Comando ou ação de validação]
+- [Teste 3: Verificação manual ou automatizada]
+
+## Critérios de aceite
+- [ ] [Critério 1 específico e mensurável]
+- [ ] [Critério 2 específico e mensurável]
+- [ ] [Critério 3 específico e mensurável]
+```
+
+### Regras de Escrita da Subtask
+
+1. **Status:**
+   - Campo obrigatório que indica o estado atual da subtask
+   - Estados possíveis: 🔄 Em desenvolvimento | ✅ Concluída
+   - Quando uma subtask for concluída, deve-se:
+     - Alterar o estado para "✅ Concluída"
+     - Preencher a data de conclusão no formato DD/MM/AAAA
+   - Este campo deve ser atualizado assim que a subtask for finalizada
+   - **IMPORTANTE**: A subtask também deve ser marcada como concluída na lista de subtasks do `story.md`
+
+2. **Descrição:**
+   - Máximo 2-3 frases
+   - Deve ser clara sobre O QUE será feito
+   - Não precisa explicar COMO (isso vai nos passos)
+
+3. **Passos de implementação:**
+   - Mínimo 3 passos, ideal 5-8 passos
+   - Cada passo deve ser:
+     - Específico (não genérico)
+     - Acionável (pode ser executado)
+     - Sequencial (ordem lógica)
+   - Usar formato de checklist: `- [ ]` para passos não concluídos, `- [x]` para passos concluídos
+   - Marcar passos como concluídos à medida que são implementados
+   - Incluir nomes de arquivos, recursos, ou comandos quando relevante
+   - Exemplo: `- [x] Criar arquivo terraform/modules/eks/main.tf`
+
+3. **Como testar:**
+   - Mínimo 3 formas de teste/validação
+   - Deve incluir:
+     - Comandos para executar (ex: `terraform validate`)
+     - Verificações manuais (ex: "Verificar via AWS CLI")
+     - Validações automatizadas (ex: "Teste unitário deve passar")
+   - Cada teste deve ser executável e verificável
+   - **IMPORTANTE:** Subtasks devem ser simples o suficiente para serem testadas individualmente
+
+4. **Critérios de aceite:**
+   - Mínimo 3 critérios, ideal 4-6 critérios
+   - Cada critério deve ser:
+     - Específico (ex: "Arquivo main.tf criado" não "Código criado")
+     - Mensurável (pode ser verificado)
+     - Testável (pode ser validado)
+   - Usar formato de checklist: `- [ ]` para critérios não atendidos, `- [x]` para critérios atendidos
+   - Marcar critérios como atendidos à medida que são validados
+
+## ✅ Princípios de Qualidade
+
+### Simplicidade das Subtasks
+
+**Regra fundamental:** Cada subtask deve ser simples o suficiente para:
+1. Ser implementada em 1-2 horas (ideal)
+2. Ser testada de forma independente
+3. Ter critérios de aceite claros e objetivos
+4. Poder ser validada sem depender de outras subtasks (quando possível)
+
+**Se uma subtask for muito complexa:**
+- Quebre em múltiplas subtasks menores
+- Cada subtask deve ter um objetivo único e claro
+- Evite subtasks que fazem "muitas coisas ao mesmo tempo"
+
+### Consistência
+
+1. **Nomenclatura:**
+   - Sempre seguir o padrão estabelecido
+   - Manter consistência entre histórias
+   - Usar termos técnicos corretos
+
+2. **Formato:**
+   - Sempre usar a estrutura obrigatória
+   - Manter formatação consistente
+   - Usar markdown corretamente
+
+3. **Linguagem:**
+   - Usar português brasileiro
+   - Ser claro e objetivo
+   - Evitar jargões desnecessários
+   - Usar termos técnicos quando apropriado
+
+### Rastreabilidade
+
+1. **Links:**
+   - Todos os links devem ser relativos
+   - Links devem funcionar quando acessados
+   - Formato: `./subtask/Subtask-XX-Nome.md`
+
+2. **Referências:**
+   - Se referenciar outras histórias, usar caminho relativo
+   - Se referenciar arquivos do projeto, usar caminho relativo
+   - Exemplo: `terraform/modules/backend/main.tf`
+
+## 📊 Checklist de Criação de História
+
+Antes de considerar uma história completa, verificar:
+
+### Estrutura
+- [ ] Pasta criada com nome no formato `Storie-XX-Descricao_Breve`
+- [ ] Arquivo `story.md` criado na raiz da pasta
+- [ ] Pasta `subtask/` criada
+- [ ] Todas as subtasks criadas na pasta `subtask/`
+
+### Conteúdo do story.md
+- [ ] Status preenchido (Estado e Data de Conclusão quando aplicável)
+- [ ] Título no formato correto
+- [ ] Descrição no formato "Como... quero... para..."
+- [ ] Objetivo claro e objetivo
+- [ ] Escopo técnico completo (tecnologias, arquivos, recursos)
+- [ ] Mínimo 3 subtasks listadas
+- [ ] Subtasks com checkboxes para marcação de conclusão
+- [ ] Datas de conclusão preenchidas para subtasks concluídas
+- [ ] Links das subtasks funcionando
+- [ ] Mínimo 5 critérios de aceite
+- [ ] Todos os critérios são específicos e mensuráveis
+
+### Conteúdo das Subtasks
+- [ ] Cada subtask tem Status preenchido (Estado e Data de Conclusão quando aplicável)
+- [ ] Cada subtask tem descrição clara
+- [ ] Cada subtask tem mínimo 3 passos de implementação
+- [ ] Passos de implementação usam checkboxes para rastreamento
+- [ ] Cada subtask tem mínimo 3 formas de teste
+- [ ] Cada subtask tem mínimo 3 critérios de aceite
+- [ ] Critérios de aceite usam checkboxes para validação
+- [ ] Subtasks são simples e testáveis individualmente
+- [ ] Ordem das subtasks faz sentido lógico
+- [ ] Subtasks concluídas estão marcadas no story.md e na própria subtask
+
+### Qualidade
+- [ ] Nomenclatura consistente
+- [ ] Formatação markdown correta
+- [ ] Sem erros de ortografia
+- [ ] Linguagem clara e objetiva
+- [ ] Termos técnicos usados corretamente
+
+## 🎯 Exemplo Completo
+
+### Estrutura de Pasta
+```
+stories/
+└── Storie-19-Criar_Manifests_Kubernetes/
+    ├── story.md
+    └── subtask/
+        ├── Subtask-01-Criar_namespace_orderhub.md
+        ├── Subtask-02-Criar_deployment_orderhub.md
+        ├── Subtask-03-Criar_service_orderhub.md
+        └── Subtask-04-Criar_hpa_orderhub.md
+```
+
+### Exemplo de story.md
+```markdown
+# Storie-19: Criar Manifests Kubernetes para OrderHub
+
+## Status
+- **Estado:** ✅ Concluída
+- **Data de Conclusão:** 15/12/2024
+
+## Descrição
+Como engenheiro de plataforma, quero criar manifests Kubernetes (Deployment, Service, HPA) para o microsserviço OrderHub, para que ele possa ser implantado no cluster EKS com escalabilidade horizontal independente.
+
+## Objetivo
+Criar manifests Kubernetes completos para o OrderHub incluindo Deployment, Service tipo LoadBalancer, e HPA configurado para escalar baseado em CPU, garantindo alta disponibilidade e escalabilidade automática.
+
+## Escopo Técnico
+- Tecnologias: Kubernetes, YAML, EKS
+- Arquivos afetados: `k8s/app/orderhub/deployment.yaml`, `k8s/app/orderhub/service.yaml`, `k8s/app/orderhub/hpa.yaml`
+- Recursos Kubernetes: Deployment, Service (LoadBalancer), HorizontalPodAutoscaler
+
+## Subtasks
+
+- [x] [Subtask 01: Criar namespace orderhub](./subtask/Subtask-01-Criar_namespace_orderhub.md) - *Data de Conclusão: 10/12/2024*
+- [x] [Subtask 02: Criar deployment para OrderHub](./subtask/Subtask-02-Criar_deployment_orderhub.md) - *Data de Conclusão: 11/12/2024*
+- [x] [Subtask 03: Criar service LoadBalancer para OrderHub](./subtask/Subtask-03-Criar_service_orderhub.md) - *Data de Conclusão: 12/12/2024*
+- [ ] [Subtask 04: Criar HPA para OrderHub](./subtask/Subtask-04-Criar_hpa_orderhub.md) - *Data de Conclusão: [DD/MM/AAAA]*
+
+## Critérios de Aceite da História
+
+- [ ] Namespace `orderhub` criado em `k8s/app/orderhub/namespace.yaml`
+- [ ] Deployment criado com imagem do ECR `orderhub-api`
+- [ ] Deployment configurado com resources (requests e limits)
+- [ ] Service tipo LoadBalancer criado com annotations para NLB
+- [ ] HPA criado com minReplicas=2, maxReplicas=5
+- [ ] HPA configurado para escalar baseado em CPU (targetCPUUtilization=70)
+- [ ] Manifests validados com `kubectl apply --dry-run=client`
+- [ ] Documentação de deploy criada
+```
+
+### Exemplo de Subtask
+```markdown
+# Subtask 01: Criar namespace orderhub
+
+## Status
+- **Estado:** ✅ Concluída
+- **Data de Conclusão:** 10/12/2024
+
+## Descrição
+Criar arquivo YAML para namespace Kubernetes que será usado pelo microsserviço OrderHub, garantindo isolamento de recursos.
+
+## Passos de implementação
+- [x] Criar diretório `k8s/app/orderhub/`
+- [x] Criar arquivo `namespace.yaml` no diretório
+- [x] Adicionar recurso `kind: Namespace` com `name: orderhub`
+- [x] Adicionar labels padrão: `app: orderhub`, `env: dev`
+- [x] Adicionar comentários explicativos no arquivo
+
+## Como testar
+- Executar `kubectl apply --dry-run=client -f k8s/app/orderhub/namespace.yaml` (deve passar sem erros)
+- Validar sintaxe YAML com validador online ou `yamllint`
+- Verificar que o arquivo segue padrão de indentação (2 espaços)
+- Executar `kubectl get namespace orderhub` após aplicar (deve retornar o namespace)
+
+## Critérios de aceite
+- [x] Arquivo `k8s/app/orderhub/namespace.yaml` criado
+- [x] Namespace tem nome `orderhub`
+- [x] Labels padrão aplicadas (app, env)
+- [x] `kubectl apply --dry-run=client` passa sem erros
+- [x] Sintaxe YAML válida
+```
+
+## 📈 Rastreamento de Progresso
+
+### Atualização de Subtasks Durante Desenvolvimento
+
+**Regra fundamental**: As subtasks devem ser atualizadas **durante o desenvolvimento**, não apenas no final.
+
+#### Quando Marcar uma Subtask como Concluída
+
+1. **Ao finalizar a implementação**:
+   - Todos os passos de implementação foram executados
+   - Todos os testes foram executados e passaram
+   - Todos os critérios de aceite foram validados
+
+2. **Atualizações necessárias**:
+   - Marcar checkbox da subtask no `story.md`: `- [x]`
+   - Adicionar data de conclusão no `story.md`: `- *Data de Conclusão: DD/MM/AAAA*`
+   - Atualizar Status na própria subtask:
+     ```markdown
+     ## Status
+     - **Estado:** ✅ Concluída
+     - **Data de Conclusão:** DD/MM/AAAA
+     ```
+   - Marcar passos de implementação como concluídos: `- [x]`
+   - Marcar critérios de aceite como atendidos: `- [x]`
+
+#### Exemplo de Fluxo de Trabalho
+
+1. **Início da Subtask**:
+   ```markdown
+   ## Status
+   - **Estado:** 🔄 Em desenvolvimento
+   - **Data de Conclusão:** [DD/MM/AAAA]
+   ```
+
+2. **Durante o desenvolvimento**:
+   - Marcar passos como concluídos à medida que são implementados
+   - Marcar critérios como atendidos à medida que são validados
+
+3. **Conclusão da Subtask**:
+   ```markdown
+   ## Status
+   - **Estado:** ✅ Concluída
+   - **Data de Conclusão:** 15/12/2024
+   ```
+   - E atualizar no `story.md`:
+   ```markdown
+   - [x] [Subtask 01: Nome](./subtask/Subtask-01-Nome.md) - *Data de Conclusão: 15/12/2024*
+   ```
+
+### Atualização da Story
+
+A story deve ser marcada como concluída apenas quando:
+- Todas as subtasks foram concluídas
+- Todos os critérios de aceite da história foram atendidos
+- A data de conclusão deve ser a data da última subtask concluída ou a data de validação final
+
+---
+
+## 🚫 Erros Comuns a Evitar
+
+1. **Subtasks muito complexas:**
+   - ❌ "Criar módulo EKS completo com todas as configurações"
+   - ✅ "Criar estrutura base do módulo EKS" + "Implementar recurso aws_eks_cluster" + "Configurar logging"
+
+2. **Critérios de aceite vagos:**
+   - ❌ "Código funciona"
+   - ✅ "terraform validate passa sem erros"
+
+3. **Falta de testabilidade:**
+   - ❌ "Verificar que está correto"
+   - ✅ "Executar terraform plan e verificar que mostra criação de 1 recurso"
+
+4. **Nomenclatura inconsistente:**
+   - ❌ `Storie-1-Backend` (sem zero, sem descrição)
+   - ✅ `Storie-01-Backend_Terraform_S3`
+
+5. **Links quebrados:**
+   - ❌ `./Subtask-01.md` (caminho errado)
+   - ✅ `./subtask/Subtask-01-Criar_modulo.md`
+
+## 📚 Referências
+
+- Histórias existentes em `stories/` servem como exemplos
+- Manter consistência com padrões já estabelecidos
+- Quando em dúvida, seguir os exemplos das histórias 01-18

@@ -1,0 +1,6 @@
+@FastFood.OrderHub.Api_HostAddress = http://localhost:5081
+
+GET {{FastFood.OrderHub.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
