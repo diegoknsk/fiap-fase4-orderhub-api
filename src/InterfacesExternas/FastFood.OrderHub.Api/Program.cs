@@ -37,12 +37,20 @@ builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagem
 
 // Registrar Presenters (ProductManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManagement.GetProductByIdPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManagement.GetProductsPagedPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManagement.CreateProductPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManagement.UpdateProductPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManagement.DeleteProductPresenter>();
 
 // Registrar UseCases (OrderManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.GetOrderByIdUseCase>();
 
 // Registrar UseCases (ProductManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.ProductManagement.GetProductByIdUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.ProductManagement.GetProductsPagedUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.ProductManagement.CreateProductUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.ProductManagement.UpdateProductUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.ProductManagement.DeleteProductUseCase>();
 
 var app = builder.Build();
 

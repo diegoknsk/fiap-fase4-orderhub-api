@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\FastFood.OrderHub.Domain\FastFood.OrderHub.Domain.csproj" />
+    <ProjectReference Include="..\..\Core\FastFood.OrderHub.Application\FastFood.OrderHub.Application.csproj" />
+    <ProjectReference Include="..\..\InterfacesExternas\FastFood.OrderHub.Api\FastFood.OrderHub.Api.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using FastFood.OrderHub.Application.DTOs;
@@ -149,6 +150,135 @@ public class ProductDynamoDbRepository
     }
 
     /// <summary>
+    /// Obtém produtos paginados (com filtros opcionais por categoria e nome)
+    /// </summary>
+    public async Task<List<ProductDto>> GetPagedAsync(int page, int pageSize, int? category = null, string? name = null)
+    {
+        // Se categoria fornecida, usar GSI
+        if (category.HasValue)
+        {
+            return await GetPagedByCategoryAsync(category.Value, page, pageSize, name);
+        }
+
+        // Caso contrário, usar Scan com filtros
+        var request = new ScanRequest
+        {
+            TableName = _tableName,
+            Limit = pageSize
+        };
+
+        // Adicionar filtros
+        var filterExpressions = new List<string>();
+        var expressionAttributeValues = new Dictionary<string, AttributeValue>();
+
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            filterExpressions.Add("contains(Name, :name)");
+            expressionAttributeValues[":name"] = new AttributeValue { S = name };
+        }
+
+        if (filterExpressions.Any())
+        {
+            request.FilterExpression = string.Join(" AND ", filterExpressions);
+            request.ExpressionAttributeValues = expressionAttributeValues;
+        }
+
+        // Calcular paginação
+        var allItems = new List<ProductDto>();
+        Dictionary<string, AttributeValue>? lastKey = null;
+        int itemsToSkip = (page - 1) * pageSize;
+        int itemsToTake = pageSize;
+        int itemsSkipped = 0;
+
+        do
+        {
+            if (lastKey != null)
+            {
+                request.ExclusiveStartKey = lastKey;
+            }
+
+            var response = await _dynamoDbClient.ScanAsync(request);
+
+            foreach (var item in response.Items)
+            {
+                if (itemsSkipped < itemsToSkip)
+                {
+                    itemsSkipped++;
+                    continue;
+                }
+
+                if (allItems.Count >= itemsToTake)
+                    break;
+
+                allItems.Add(MapFromDynamoDb(item));
+            }
+
+            lastKey = response.LastEvaluatedKey;
+        } while (allItems.Count < itemsToTake && lastKey != null && lastKey.Any());
+
+        return allItems;
+    }
+
+    /// <summary>
+    /// Obtém produtos paginados por categoria usando GSI
+    /// </summary>
+    private async Task<List<ProductDto>> GetPagedByCategoryAsync(int category, int page, int pageSize, string? name = null)
+    {
+        var request = new QueryRequest
+        {
+            TableName = _tableName,
+            IndexName = DynamoDbTableConfiguration.PRODUCT_CATEGORY_INDEX,
+            KeyConditionExpression = $"{DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE} = :category",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                { ":category", new AttributeValue { N = category.ToString() } }
+            },
+            Limit = pageSize
+        };
+
+        // Adicionar filtro por nome se fornecido
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            request.FilterExpression = "contains(Name, :name)";
+            request.ExpressionAttributeValues[":name"] = new AttributeValue { S = name };
+        }
+
+        // Calcular paginação
+        int itemsToSkip = (page - 1) * pageSize;
+        int itemsSkipped = 0;
+        Dictionary<string, AttributeValue>? lastKey = null;
+        var allItems = new List<ProductDto>();
+
+        do
+        {
+            if (lastKey != null)
+            {
+                request.ExclusiveStartKey = lastKey;
+            }
+
+            var response = await _dynamoDbClient.QueryAsync(request);
+
+            foreach (var item in response.Items)
+            {
+                if (itemsSkipped < itemsToSkip)
+                {
+                    itemsSkipped++;
+                    continue;
+                }
+
+                if (allItems.Count >= pageSize)
+                    break;
+
+                allItems.Add(MapFromDynamoDb(item));
+            }
+
+            lastKey = response.LastEvaluatedKey;
+        } while (allItems.Count < pageSize && lastKey != null && lastKey.Any());
+
+        return allItems;
+    }
+
+    /// <summary>
     /// Mapeia ProductDto para atributos DynamoDB
     /// </summary>
     private Dictionary<string, AttributeValue> MapToDynamoDb(ProductDto dto)
@@ -158,7 +288,7 @@ public class ProductDynamoDbRepository
             { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = dto.Id.ToString() } },
             { "Name", new AttributeValue { S = dto.Name ?? string.Empty } },
             { DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE, new AttributeValue { N = dto.Category.ToString() } },
-            { "Price", new AttributeValue { N = dto.Price.ToString("F2") } },
+            { "Price", new AttributeValue { N = dto.Price.ToString("F2", CultureInfo.InvariantCulture) } },
             { "IsActive", new AttributeValue { BOOL = dto.IsActive } },
             { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = dto.CreatedAt.ToString("O") } }
         };
@@ -179,7 +309,7 @@ public class ProductDynamoDbRepository
                 {
                     { "Id", new AttributeValue { S = ingredient.Id.ToString() } },
                     { "Name", new AttributeValue { S = ingredient.Name ?? string.Empty } },
-                    { "Price", new AttributeValue { N = ingredient.Price.ToString("F2") } }
+                    { "Price", new AttributeValue { N = ingredient.Price.ToString("F2", CultureInfo.InvariantCulture) } }
                 };
                 ingredientsList.Add(new AttributeValue { M = ingredientMap });
             }
@@ -201,7 +331,7 @@ public class ProductDynamoDbRepository
             Category = item.ContainsKey(DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE) 
                 ? int.Parse(item[DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE].N) 
                 : 0,
-            Price = item.ContainsKey("Price") ? decimal.Parse(item["Price"].N) : 0,
+            Price = item.ContainsKey("Price") ? decimal.Parse(item["Price"].N, CultureInfo.InvariantCulture) : 0,
             IsActive = item.ContainsKey("IsActive") ? item["IsActive"].BOOL : true,
             Description = item.ContainsKey("Description") ? item["Description"].S : null,
             ImageUrl = item.ContainsKey("ImageUrl") ? item["ImageUrl"].S : null
@@ -222,7 +352,7 @@ public class ProductDynamoDbRepository
                 {
                     Id = Guid.Parse(ingredientMap["Id"].S),
                     Name = ingredientMap.ContainsKey("Name") ? ingredientMap["Name"].S : null,
-                    Price = ingredientMap.ContainsKey("Price") ? decimal.Parse(ingredientMap["Price"].N) : 0,
+                    Price = ingredientMap.ContainsKey("Price") ? decimal.Parse(ingredientMap["Price"].N, CultureInfo.InvariantCulture) : 0,
                     ProductId = dto.Id
                 });
             }
