@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
+using FastFood.OrderHub.Application.Models.Common;
 using FastFood.OrderHub.Application.Responses.ProductManagement;
 using FastFood.OrderHub.Application.UseCases.ProductManagement;
 using Microsoft.AspNetCore.Mvc;
@@ -36,7 +37,7 @@ public class ProductsController : ControllerBase
     /// Listar produtos paginados
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(GetProductsPagedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GetProductsPagedResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? category = null, [FromQuery] string? name = null)
     {
         var input = new GetProductsPagedInputModel
@@ -48,42 +49,42 @@ public class ProductsController : ControllerBase
         };
 
         var response = await _getProductsPagedUseCase.ExecuteAsync(input);
-        return Ok(response);
+        return Ok(ApiResponse<GetProductsPagedResponse>.Ok(response));
     }
 
     /// <summary>
     /// Obter produto por ID
     /// </summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(GetProductByIdResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<GetProductByIdResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GetProductByIdResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var input = new GetProductByIdInputModel { ProductId = id };
         var response = await _getProductByIdUseCase.ExecuteAsync(input);
 
         if (response == null)
-            return NotFound();
+            return NotFound(ApiResponse<GetProductByIdResponse>.Fail("Produto não encontrado."));
 
-        return Ok(response);
+        return Ok(ApiResponse<GetProductByIdResponse>.Ok(response));
     }
 
     /// <summary>
     /// Criar produto
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(CreateProductResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<CreateProductResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<CreateProductResponse>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateProductInputModel input)
     {
         try
         {
             var response = await _createProductUseCase.ExecuteAsync(input);
-            return CreatedAtAction(nameof(GetById), new { id = response.ProductId }, response);
+            return CreatedAtAction(nameof(GetById), new { id = response.ProductId }, ApiResponse<CreateProductResponse>.Ok(response, "Produto criado com sucesso."));
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(ApiResponse<CreateProductResponse>.Fail(ex.Message));
         }
     }
 
@@ -91,9 +92,9 @@ public class ProductsController : ControllerBase
     /// Atualizar produto
     /// </summary>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(UpdateProductResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<UpdateProductResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UpdateProductResponse>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<UpdateProductResponse>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductInputModel input)
     {
         try
@@ -102,13 +103,13 @@ public class ProductsController : ControllerBase
             var response = await _updateProductUseCase.ExecuteAsync(input);
 
             if (response == null)
-                return NotFound();
+                return NotFound(ApiResponse<UpdateProductResponse>.Fail("Produto não encontrado."));
 
-            return Ok(response);
+            return Ok(ApiResponse<UpdateProductResponse>.Ok(response, "Produto atualizado com sucesso."));
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(ApiResponse<UpdateProductResponse>.Fail(ex.Message));
         }
     }
 
@@ -116,17 +117,17 @@ public class ProductsController : ControllerBase
     /// Remover produto
     /// </summary>
     [HttpDelete("{id}")]
-    [ProducesResponseType(typeof(DeleteProductResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<DeleteProductResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<DeleteProductResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var input = new DeleteProductInputModel { ProductId = id };
         var response = await _deleteProductUseCase.ExecuteAsync(input);
 
         if (response == null)
-            return NotFound();
+            return NotFound(ApiResponse<DeleteProductResponse>.Fail("Produto não encontrado."));
 
-        return Ok(response);
+        return Ok(ApiResponse<DeleteProductResponse>.Ok(response, "Produto removido com sucesso."));
     }
 }
 

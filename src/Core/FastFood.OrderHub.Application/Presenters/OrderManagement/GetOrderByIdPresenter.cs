@@ -17,7 +17,6 @@ public class GetOrderByIdPresenter
             CustomerId = output.CustomerId,
             CreatedAt = output.CreatedAt,
             OrderStatus = output.OrderStatus,
-            PaymentStatus = output.PaymentStatus,
             TotalPrice = output.TotalPrice,
             Items = output.Items.Select(item => new OrderedProductResponse
             {

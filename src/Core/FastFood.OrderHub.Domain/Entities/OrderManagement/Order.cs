@@ -10,7 +10,6 @@ public class Order
     public Guid Id { get; set; }
     public string? Code { get; set; }
     public ICollection<OrderedProduct> OrderedProducts { get; set; } = new List<OrderedProduct>();
-    public EnumPaymentStatus PaymentStatus { get; set; }
     public EnumOrderStatus OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     public Guid? CustomerId { get; set; }

@@ -31,7 +31,7 @@ Criar classe de configuração para definir estrutura das tabelas DynamoDB (`fas
 
 ### Tabela fastfood-orders
 - **PK:** `OrderId` (String)
-- **Atributos:** Code, CustomerId, CreatedAt, OrderStatus, PaymentStatus, TotalPrice, OrderSource, Items[]
+- **Atributos:** Code, CustomerId, CreatedAt, OrderStatus, TotalPrice, OrderSource, Items[]
 - **GSI1:** CustomerId-CreatedAt-Index (PK: CustomerId, SK: CreatedAt)
 - **GSI2:** Status-CreatedAt-Index (PK: OrderStatus, SK: CreatedAt) - Opcional
 - **GSI3:** Code-Index (PK: Code, SK: OrderId) - Opcional

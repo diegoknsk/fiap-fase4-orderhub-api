@@ -4,7 +4,7 @@
 - **Estado:** ✅ Implementação Concluída (Parcial)
 - **Data de Início:** 28/12/2024
 - **Data de Conclusão:** 28/12/2024
-- **Observação:** Subtask 09 pendente (UseCases ainda não implementados)
+- **Observação:** ProductsController completo com todos os endpoints e testes unitários (85%+ cobertura)
 
 ## Descrição
 Como desenvolvedor, preciso migrar o módulo FastFood do repositório `fiap-fase3-aplicacao\fiap-fastfood` de MySQL/EF Core para DynamoDB, mantendo o máximo possível do comportamento atual das APIs, fluxos e regras de domínio. A migração deve seguir a "Solução A" (1 tabela para Orders, 1 tabela para Products) e respeitar integralmente a arquitetura já adotada no projeto.
@@ -59,7 +59,7 @@ O projeto deve seguir o padrão arquitetural do projeto de referência:
    - **Regras de Negócio:**
      - Gera código único do pedido (formato: `ORD{yyyyMMdd}{random}`)
      - Valida unicidade do código
-     - Cria Order com status `Started` e PaymentStatus `NotStarted`
+     - Cria Order com status `Started`
      - Calcula TotalPrice inicial (0)
 
 3. **POST `/api/order/add-product`** - Adicionar produto ao pedido
@@ -182,7 +182,6 @@ O projeto deve seguir o padrão arquitetural do projeto de referência:
   - `Id` (Guid)
   - `Code` (string?)
   - `OrderedProducts` (ICollection<OrderedProduct>)
-  - `PaymentStatus` (EnumPaymentStatus)
   - `OrderStatus` (EnumOrderStatus)
   - `CreatedAt` (DateTime)
   - `CustomerId` (Guid?)
@@ -322,7 +321,6 @@ Task<bool> ExistsAsync(Guid id);
 - `CustomerId` (String, nullable) - Guid do cliente
 - `CreatedAt` (String, ISO 8601)
 - `OrderStatus` (Number) - EnumOrderStatus
-- `PaymentStatus` (Number) - EnumPaymentStatus
 - `TotalPrice` (Number) - Snapshot calculado no checkout
 - `OrderSource` (String, nullable) - Origem do pedido (ex: "WEB", "APP")
 - `Items` (List<Map>) - Lista de OrderedProducts (snapshot completo):
@@ -544,9 +542,9 @@ Task<bool> ExistsAsync(Guid id);
 - [Subtask 03: Configurar AWS Credentials e Connection](./subtask/Subtask-03-Configurar_AWS_Credentials.md)
 
 ### Fase 2: Implementação ProductDataSource
-- [Subtask 04: Implementar ProductDynamoDbRepository](./subtask/Subtask-04-Implementar_ProductDynamoDbRepository.md)
-- [Subtask 05: Implementar ProductDynamoDbDataSource](./subtask/Subtask-05-Implementar_ProductDynamoDbDataSource.md)
-- [Subtask 06: Testar Endpoints ProductsController](./subtask/Subtask-06-Testar_Endpoints_ProductsController.md)
+- ✅ [Subtask 04: Implementar ProductDynamoDbRepository](./subtask/Subtask-04-Implementar_ProductDynamoDbRepository.md)
+- ✅ [Subtask 05: Implementar ProductDynamoDbDataSource](./subtask/Subtask-05-Implementar_ProductDynamoDbDataSource.md)
+- ✅ [Subtask 06: Testar Endpoints ProductsController](./subtask/Subtask-06-Testar_Endpoints_ProductsController.md) - **Concluído: Todos os 5 endpoints implementados + 31 testes unitários**
 
 ### Fase 3: Implementação OrderDataSource
 - [Subtask 07: Implementar OrderDynamoDbRepository](./subtask/Subtask-07-Implementar_OrderDynamoDbRepository.md)
@@ -571,11 +569,11 @@ Task<bool> ExistsAsync(Guid id);
 ## Checklist de Testes
 
 ### Testes Funcionais
-- [ ] GET `/api/products` - Listar produtos paginados
-- [ ] GET `/api/products/{id}` - Obter produto por ID
-- [ ] POST `/api/products` - Criar produto
-- [ ] PUT `/api/products/{id}` - Atualizar produto
-- [ ] DELETE `/api/products/{id}` - Remover produto
+- [x] GET `/api/products` - Listar produtos paginados ✅
+- [x] GET `/api/products/{id}` - Obter produto por ID ✅
+- [x] POST `/api/products` - Criar produto ✅
+- [x] PUT `/api/products/{id}` - Atualizar produto ✅
+- [x] DELETE `/api/products/{id}` - Remover produto ✅
 - [ ] GET `/api/order/{id}` - Obter pedido por ID
 - [ ] POST `/api/order/start` - Iniciar pedido
 - [ ] POST `/api/order/add-product` - Adicionar produto ao pedido
@@ -607,7 +605,7 @@ Task<bool> ExistsAsync(Guid id);
 
 ### Funcionais
 - [ ] Todos os endpoints de OrderController funcionando com DynamoDB
-- [ ] Todos os endpoints de ProductsController funcionando com DynamoDB
+- [x] Todos os endpoints de ProductsController funcionando com DynamoDB ✅
 - [ ] Comportamento das APIs idêntico ao atual (contratos preservados)
 - [ ] Regras de negócio preservadas (cálculos, validações, transições de status)
 - [ ] Tabelas DynamoDB criadas com estrutura correta (PK, GSIs)
@@ -626,7 +624,7 @@ Task<bool> ExistsAsync(Guid id);
 - [ ] Documentação atualizada (README, Rules, ADRs)
 
 ### Qualidade
-- [ ] Testes unitários para repositórios DynamoDB
+- [x] Testes unitários para UseCases e Controllers de Products ✅ (31 testes, 85%+ cobertura)
 - [ ] Testes de integração end-to-end
 - [ ] Código compila sem erros
 - [ ] Sem code smells críticos (Sonar)

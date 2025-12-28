@@ -1,3 +1,4 @@
+using System.Globalization;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using FastFood.OrderHub.Application.DTOs;
@@ -336,7 +337,6 @@ public class OrderDynamoDbRepository
         size += (dto.CustomerId?.ToString().Length ?? 0);
         size += dto.CreatedAt.ToString("O").Length;
         size += dto.OrderStatus.ToString().Length;
-        size += dto.PaymentStatus.ToString().Length;
         size += dto.TotalPrice.ToString().Length;
         size += (dto.OrderSource?.Length ?? 0);
 
@@ -375,8 +375,7 @@ public class OrderDynamoDbRepository
             { DynamoDbTableConfiguration.ORDER_ID_ATTRIBUTE, new AttributeValue { S = dto.Id.ToString() } },
             { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = dto.CreatedAt.ToString("O") } },
             { DynamoDbTableConfiguration.ORDER_STATUS_ATTRIBUTE, new AttributeValue { N = dto.OrderStatus.ToString() } },
-            { "PaymentStatus", new AttributeValue { N = dto.PaymentStatus.ToString() } },
-            { "TotalPrice", new AttributeValue { N = dto.TotalPrice.ToString("F2") } }
+            { "TotalPrice", new AttributeValue { N = dto.TotalPrice.ToString("F2", CultureInfo.InvariantCulture) } }
         };
 
         if (!string.IsNullOrWhiteSpace(dto.Code))
@@ -405,7 +404,7 @@ public class OrderDynamoDbRepository
                     { "Id", new AttributeValue { S = orderedProduct.Id.ToString() } },
                     { "ProductId", new AttributeValue { S = orderedProduct.ProductId.ToString() } },
                     { "Quantity", new AttributeValue { N = orderedProduct.Quantity.ToString() } },
-                    { "FinalPrice", new AttributeValue { N = orderedProduct.FinalPrice.ToString("F2") } }
+                    { "FinalPrice", new AttributeValue { N = orderedProduct.FinalPrice.ToString("F2", CultureInfo.InvariantCulture) } }
                 };
 
                 if (!string.IsNullOrWhiteSpace(orderedProduct.ProductName))
@@ -427,7 +426,7 @@ public class OrderDynamoDbRepository
                         {
                             { "Id", new AttributeValue { S = ingredient.Id.ToString() } },
                             { "Name", new AttributeValue { S = ingredient.Name ?? string.Empty } },
-                            { "Price", new AttributeValue { N = ingredient.Price.ToString("F2") } },
+                            { "Price", new AttributeValue { N = ingredient.Price.ToString("F2", CultureInfo.InvariantCulture) } },
                             { "Quantity", new AttributeValue { N = ingredient.Quantity.ToString() } }
                         };
                         ingredientsList.Add(new AttributeValue { M = ingredientMap });
@@ -452,8 +451,7 @@ public class OrderDynamoDbRepository
         {
             Id = Guid.Parse(item[DynamoDbTableConfiguration.ORDER_ID_ATTRIBUTE].S),
             OrderStatus = int.Parse(item[DynamoDbTableConfiguration.ORDER_STATUS_ATTRIBUTE].N),
-            PaymentStatus = item.ContainsKey("PaymentStatus") ? int.Parse(item["PaymentStatus"].N) : 0,
-            TotalPrice = item.ContainsKey("TotalPrice") ? decimal.Parse(item["TotalPrice"].N) : 0
+            TotalPrice = item.ContainsKey("TotalPrice") ? decimal.Parse(item["TotalPrice"].N, CultureInfo.InvariantCulture) : 0
         };
 
         if (item.ContainsKey(DynamoDbTableConfiguration.CODE_ATTRIBUTE))
@@ -479,7 +477,7 @@ public class OrderDynamoDbRepository
                     Id = Guid.Parse(itemMap["Id"].S),
                     ProductId = Guid.Parse(itemMap["ProductId"].S),
                     Quantity = int.Parse(itemMap["Quantity"].N),
-                    FinalPrice = decimal.Parse(itemMap["FinalPrice"].N)
+                    FinalPrice = decimal.Parse(itemMap["FinalPrice"].N, CultureInfo.InvariantCulture)
                 };
 
                 if (itemMap.ContainsKey("ProductName"))
@@ -501,7 +499,7 @@ public class OrderDynamoDbRepository
                         {
                             Id = Guid.Parse(ingredientMap["Id"].S),
                             Name = ingredientMap.ContainsKey("Name") ? ingredientMap["Name"].S : null,
-                            Price = ingredientMap.ContainsKey("Price") ? decimal.Parse(ingredientMap["Price"].N) : 0,
+                            Price = ingredientMap.ContainsKey("Price") ? decimal.Parse(ingredientMap["Price"].N, CultureInfo.InvariantCulture) : 0,
                             Quantity = ingredientMap.ContainsKey("Quantity") ? int.Parse(ingredientMap["Quantity"].N) : 0
                         });
                     }

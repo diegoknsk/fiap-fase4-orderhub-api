@@ -4,6 +4,8 @@ using FastFood.OrderHub.Application.OutputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.ProductManagement;
 using FastFood.OrderHub.Application.Responses.ProductManagement;
+using FastFood.OrderHub.Domain.Common.Enums;
+using FastFood.OrderHub.Domain.Entities.OrderManagement;
 
 namespace FastFood.OrderHub.Application.UseCases.ProductManagement;
 
@@ -26,8 +28,8 @@ public class UpdateProductUseCase
     public async Task<UpdateProductResponse?> ExecuteAsync(UpdateProductInputModel input)
     {
         // Buscar produto existente
-        var existingProduct = await _productDataSource.GetByIdAsync(input.ProductId);
-        if (existingProduct == null)
+        var existingProductDto = await _productDataSource.GetByIdAsync(input.ProductId);
+        if (existingProductDto == null)
             return null;
 
         // Validações de negócio
@@ -37,12 +39,15 @@ public class UpdateProductUseCase
         if (input.Price <= 0)
             throw new ArgumentException("Preço do produto deve ser maior que zero.", nameof(input.Price));
 
-        // Atualizar DTO
-        existingProduct.Name = input.Name;
-        existingProduct.Category = input.Category;
-        existingProduct.Price = input.Price;
-        existingProduct.Description = input.Description;
-        existingProduct.ImageUrl = input.ImageUrl;
+        // Converter ProductDto para entidade de domínio Product
+        var product = ConvertToDomainEntity(existingProductDto);
+
+        // Atualizar propriedades da entidade de domínio
+        product.Name = input.Name;
+        product.Category = (EnumProductCategory)input.Category;
+        product.Price = input.Price;
+        product.Description = input.Description;
+        product.Image = !string.IsNullOrWhiteSpace(input.ImageUrl) ? new ImageProduct { Url = input.ImageUrl } : null;
 
         // Atualizar BaseIngredients
         // Remover ingredientes que não estão mais na lista
@@ -51,7 +56,7 @@ public class UpdateProductUseCase
             .Select(bi => bi.Id!.Value)
             .ToList();
 
-        existingProduct.BaseIngredients = existingProduct.BaseIngredients
+        product.Ingredients = product.Ingredients
             .Where(bi => existingIngredientIds.Contains(bi.Id))
             .ToList();
 
@@ -61,7 +66,7 @@ public class UpdateProductUseCase
             if (ingredientInput.Id.HasValue)
             {
                 // Atualizar ingrediente existente
-                var existingIngredient = existingProduct.BaseIngredients
+                var existingIngredient = product.Ingredients
                     .FirstOrDefault(bi => bi.Id == ingredientInput.Id.Value);
                 
                 if (existingIngredient != null)
@@ -73,31 +78,38 @@ public class UpdateProductUseCase
             else
             {
                 // Adicionar novo ingrediente
-                existingProduct.BaseIngredients.Add(new ProductBaseIngredientDto
+                product.Ingredients.Add(new ProductBaseIngredient
                 {
                     Id = Guid.NewGuid(),
                     Name = ingredientInput.Name,
                     Price = ingredientInput.Price,
-                    ProductId = existingProduct.Id
+                    ProductId = product.Id
                 });
             }
         }
 
+        // Validar produto usando método de domínio
+        if (!product.IsValid())
+            throw new InvalidOperationException("Produto inválido.");
+
+        // Converter entidade de domínio de volta para DTO
+        var productDto = ConvertToDto(product, existingProductDto.IsActive, existingProductDto.CreatedAt);
+
         // Salvar no DataSource
-        await _productDataSource.UpdateAsync(existingProduct);
+        await _productDataSource.UpdateAsync(productDto);
 
         // Criar OutputModel
         var output = new UpdateProductOutputModel
         {
-            ProductId = existingProduct.Id,
-            Name = existingProduct.Name,
-            Category = existingProduct.Category,
-            Price = existingProduct.Price,
-            Description = existingProduct.Description,
-            ImageUrl = existingProduct.ImageUrl,
-            IsActive = existingProduct.IsActive,
-            CreatedAt = existingProduct.CreatedAt,
-            BaseIngredients = existingProduct.BaseIngredients.Select(bi => new ProductBaseIngredientOutputModel
+            ProductId = product.Id,
+            Name = product.Name,
+            Category = (int)product.Category,
+            Price = product.Price,
+            Description = product.Description,
+            ImageUrl = product.Image?.Url,
+            IsActive = productDto.IsActive,
+            CreatedAt = productDto.CreatedAt,
+            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientOutputModel
             {
                 Id = bi.Id,
                 Name = bi.Name,
@@ -107,5 +119,46 @@ public class UpdateProductUseCase
 
         return _presenter.Present(output);
     }
-}
 
+    private Product ConvertToDomainEntity(ProductDto dto)
+    {
+        return new Product
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Category = (EnumProductCategory)dto.Category,
+            Price = dto.Price,
+            Description = dto.Description,
+            Image = !string.IsNullOrWhiteSpace(dto.ImageUrl) ? new ImageProduct { Url = dto.ImageUrl } : null,
+            Ingredients = dto.BaseIngredients.Select(bi => new ProductBaseIngredient
+            {
+                Id = bi.Id,
+                Name = bi.Name,
+                Price = bi.Price,
+                ProductId = bi.ProductId
+            }).ToList()
+        };
+    }
+
+    private ProductDto ConvertToDto(Product product, bool isActive, DateTime createdAt)
+    {
+        return new ProductDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Category = (int)product.Category,
+            Price = product.Price,
+            Description = product.Description,
+            ImageUrl = product.Image?.Url,
+            IsActive = isActive,
+            CreatedAt = createdAt,
+            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientDto
+            {
+                Id = bi.Id,
+                Name = bi.Name,
+                Price = bi.Price,
+                ProductId = bi.ProductId
+            }).ToList()
+        };
+    }
+}

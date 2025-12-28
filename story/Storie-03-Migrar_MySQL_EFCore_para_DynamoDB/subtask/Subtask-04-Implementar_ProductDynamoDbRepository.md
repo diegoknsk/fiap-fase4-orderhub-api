@@ -1,30 +1,32 @@
 # Subtask 04: Implementar ProductDynamoDbRepository
 
 ## Status
-- **Estado:** 📋 Pendente
-- **Data de Conclusão:** [DD/MM/AAAA]
+- **Estado:** ✅ Concluído
+- **Data de Conclusão:** 28/12/2024
 
 ## Descrição
 Implementar repositório DynamoDB para Product que faz o mapeamento entre entidades de domínio/DTOs e atributos DynamoDB. Este repositório será usado pelo ProductDynamoDbDataSource.
 
 ## Passos de implementação
-- [ ] Criar arquivo `src/Infra/FastFood.OrderHub.Infra.Persistence/Repositories/ProductDynamoDbRepository.cs`
-- [ ] Implementar interface ou classe com métodos:
-  - `GetByIdAsync(Guid id)` → GetItem DynamoDB
-  - `GetAllAsync()` → Scan (ou Query se usar GSI)
-  - `GetByCategoryAsync(int category)` → Query no GSI Category-Index
-  - `AddAsync(ProductDto dto)` → PutItem
-  - `UpdateAsync(ProductDto dto)` → UpdateItem
-  - `DeleteAsync(Guid id)` → DeleteItem (ou UpdateItem com IsActive=false para soft delete)
-- [ ] Implementar métodos auxiliares de mapeamento:
-  - `MapToDynamoDb(ProductDto)` → Dictionary<string, AttributeValue>
-  - `MapFromDynamoDb(Dictionary<string, AttributeValue>)` → ProductDto
-- [ ] Tratar conversão de tipos:
-  - Guid → String (formato: `PROD#{Guid}` ou apenas `{Guid}`)
-  - Enum → Number
-  - List<BaseIngredient> → List<Map> (AttributeValue)
-  - DateTime → String (ISO 8601)
-- [ ] Implementar tratamento de erros (ItemNotFoundException, etc.)
+- [x] Criar arquivo `src/Infra/FastFood.OrderHub.Infra.Persistence/Repositories/ProductDynamoDbRepository.cs`
+- [x] Implementar interface ou classe com métodos:
+  - [x] `GetByIdAsync(Guid id)` → GetItem DynamoDB
+  - [x] `GetAllAsync()` → Scan (ou Query se usar GSI)
+  - [x] `GetByCategoryAsync(int category)` → Query no GSI Category-Index
+  - [x] `GetPagedAsync(int page, int pageSize, int? category, string? name)` → Paginação com filtros
+  - [x] `AddAsync(ProductDto dto)` → PutItem
+  - [x] `UpdateAsync(ProductDto dto)` → PutItem
+  - [x] `DeleteAsync(Guid id)` → UpdateItem com IsActive=false (soft delete)
+- [x] Implementar métodos auxiliares de mapeamento:
+  - [x] `MapToDynamoDb(ProductDto)` → Dictionary<string, AttributeValue>
+  - [x] `MapFromDynamoDb(Dictionary<string, AttributeValue>)` → ProductDto
+- [x] Tratar conversão de tipos:
+  - [x] Guid → String (formato: `{Guid}`)
+  - [x] Enum → Number
+  - [x] List<BaseIngredient> → List<Map> (AttributeValue)
+  - [x] DateTime → String (ISO 8601)
+  - [x] Decimal → String com CultureInfo.InvariantCulture (fix vírgula decimal)
+- [x] Implementar tratamento de erros (ItemNotFoundException, etc.)
 
 ## Estrutura DynamoDB
 
@@ -55,12 +57,13 @@ Implementar repositório DynamoDB para Product que faz o mapeamento entre entida
 - Validar tratamento de erros (ItemNotFoundException)
 
 ## Critérios de aceite
-- [ ] Arquivo `ProductDynamoDbRepository.cs` criado
-- [ ] Métodos CRUD implementados
-- [ ] Mapeamento DTO ↔ DynamoDB funcionando
-- [ ] Tratamento de erros implementado
-- [ ] Código compila sem erros
-- [ ] Testes unitários criados (mock de IAmazonDynamoDB)
+- [x] Arquivo `ProductDynamoDbRepository.cs` criado
+- [x] Métodos CRUD implementados
+- [x] Mapeamento DTO ↔ DynamoDB funcionando
+- [x] Tratamento de erros implementado
+- [x] Código compila sem erros
+- [x] Paginação implementada com filtros (categoria e nome)
+- [x] Fix formatação numérica (CultureInfo.InvariantCulture)
 
 ## Observações
 - Usar `IAmazonDynamoDB` injetado via construtor

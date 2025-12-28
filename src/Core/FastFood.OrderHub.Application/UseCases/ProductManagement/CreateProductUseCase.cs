@@ -4,6 +4,8 @@ using FastFood.OrderHub.Application.OutputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.ProductManagement;
 using FastFood.OrderHub.Application.Responses.ProductManagement;
+using FastFood.OrderHub.Domain.Common.Enums;
+using FastFood.OrderHub.Domain.Entities.OrderManagement;
 
 namespace FastFood.OrderHub.Application.UseCases.ProductManagement;
 
@@ -32,18 +34,16 @@ public class CreateProductUseCase
         if (input.Price <= 0)
             throw new ArgumentException("Preço do produto deve ser maior que zero.", nameof(input.Price));
 
-        // Criar DTO
-        var productDto = new ProductDto
+        // Criar entidade de domínio Product
+        var product = new Product
         {
             Id = Guid.NewGuid(),
             Name = input.Name,
-            Category = input.Category,
+            Category = (EnumProductCategory)input.Category,
             Price = input.Price,
             Description = input.Description,
-            ImageUrl = input.ImageUrl,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            BaseIngredients = input.BaseIngredients.Select(bi => new ProductBaseIngredientDto
+            Image = !string.IsNullOrWhiteSpace(input.ImageUrl) ? new ImageProduct { Url = input.ImageUrl } : null,
+            Ingredients = input.BaseIngredients.Select(bi => new ProductBaseIngredient
             {
                 Id = Guid.NewGuid(),
                 Name = bi.Name,
@@ -53,10 +53,17 @@ public class CreateProductUseCase
         };
 
         // Atualizar ProductId nos ingredientes
-        foreach (var ingredient in productDto.BaseIngredients)
+        foreach (var ingredient in product.Ingredients)
         {
-            ingredient.ProductId = productDto.Id;
+            ingredient.ProductId = product.Id;
         }
+
+        // Validar produto usando método de domínio
+        if (!product.IsValid())
+            throw new InvalidOperationException("Produto inválido.");
+
+        // Converter entidade de domínio para DTO
+        var productDto = ConvertToDto(product);
 
         // Salvar no DataSource
         await _productDataSource.AddAsync(productDto);
@@ -64,15 +71,15 @@ public class CreateProductUseCase
         // Criar OutputModel
         var output = new CreateProductOutputModel
         {
-            ProductId = productDto.Id,
-            Name = productDto.Name,
-            Category = productDto.Category,
-            Price = productDto.Price,
-            Description = productDto.Description,
-            ImageUrl = productDto.ImageUrl,
-            IsActive = productDto.IsActive,
-            CreatedAt = productDto.CreatedAt,
-            BaseIngredients = productDto.BaseIngredients.Select(bi => new ProductBaseIngredientOutputModel
+            ProductId = product.Id,
+            Name = product.Name,
+            Category = (int)product.Category,
+            Price = product.Price,
+            Description = product.Description,
+            ImageUrl = product.Image?.Url,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientOutputModel
             {
                 Id = bi.Id,
                 Name = bi.Name,
@@ -82,5 +89,26 @@ public class CreateProductUseCase
 
         return _presenter.Present(output);
     }
-}
 
+    private ProductDto ConvertToDto(Product product)
+    {
+        return new ProductDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Category = (int)product.Category,
+            Price = product.Price,
+            Description = product.Description,
+            ImageUrl = product.Image?.Url,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientDto
+            {
+                Id = bi.Id,
+                Name = bi.Name,
+                Price = bi.Price,
+                ProductId = bi.ProductId
+            }).ToList()
+        };
+    }
+}

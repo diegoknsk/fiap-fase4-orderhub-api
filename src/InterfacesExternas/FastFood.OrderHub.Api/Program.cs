@@ -34,6 +34,12 @@ builder.Services.AddScoped<IOrderDataSource, OrderDynamoDbDataSource>();
 
 // Registrar Presenters (OrderManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.GetOrderByIdPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.StartOrderPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.AddProductToOrderPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.UpdateProductInOrderPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.RemoveProductFromOrderPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.ConfirmOrderSelectionPresenter>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.GetPagedOrdersPresenter>();
 
 // Registrar Presenters (ProductManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManagement.GetProductByIdPresenter>();
@@ -44,6 +50,12 @@ builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.ProductManag
 
 // Registrar UseCases (OrderManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.GetOrderByIdUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.StartOrderUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.AddProductToOrderUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.UpdateProductInOrderUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.RemoveProductFromOrderUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.ConfirmOrderSelectionUseCase>();
+builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.OrderManagement.GetPagedOrdersUseCase>();
 
 // Registrar UseCases (ProductManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.UseCases.ProductManagement.GetProductByIdUseCase>();

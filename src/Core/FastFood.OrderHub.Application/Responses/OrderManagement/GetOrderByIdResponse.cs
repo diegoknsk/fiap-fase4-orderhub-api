@@ -10,7 +10,6 @@ public class GetOrderByIdResponse
     public Guid? CustomerId { get; set; }
     public DateTime CreatedAt { get; set; }
     public int OrderStatus { get; set; }
-    public int PaymentStatus { get; set; }
     public decimal TotalPrice { get; set; }
     public List<OrderedProductResponse> Items { get; set; } = new();
 }

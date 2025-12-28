@@ -10,7 +10,6 @@ public class GetOrderByIdOutputModel
     public Guid? CustomerId { get; set; }
     public DateTime CreatedAt { get; set; }
     public int OrderStatus { get; set; }
-    public int PaymentStatus { get; set; }
     public decimal TotalPrice { get; set; }
     public List<OrderedProductOutputModel> Items { get; set; } = new();
 }

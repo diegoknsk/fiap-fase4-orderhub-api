@@ -40,7 +40,6 @@ Implementar repositório DynamoDB para Order que faz o mapeamento entre entidade
   "CustomerId": "guid",
   "CreatedAt": "2025-01-01T00:00:00Z",
   "OrderStatus": 1,
-  "PaymentStatus": 1,
   "TotalPrice": 25.50,
   "OrderSource": "WEB",
   "Items": [

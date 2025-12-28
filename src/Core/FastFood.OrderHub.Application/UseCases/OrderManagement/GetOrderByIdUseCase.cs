@@ -36,7 +36,6 @@ public class GetOrderByIdUseCase
             CustomerId = orderDto.CustomerId,
             CreatedAt = orderDto.CreatedAt,
             OrderStatus = orderDto.OrderStatus,
-            PaymentStatus = orderDto.PaymentStatus,
             TotalPrice = orderDto.TotalPrice,
             Items = orderDto.Items.Select(item => new OrderedProductOutputModel
             {
