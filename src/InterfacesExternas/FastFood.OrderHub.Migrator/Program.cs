@@ -36,6 +36,9 @@ class Program
             await CreateProductTableAsync(client);
             await CreateOrderTableAsync(client);
 
+            // Carregar dados iniciais
+            await SeedInitialProductsAsync(client);
+
             Console.WriteLine("Migração concluída com sucesso!");
         }
         catch (Exception ex)
@@ -479,5 +482,216 @@ class Program
         } while (status != IndexStatus.ACTIVE);
 
         Console.WriteLine($"GSI {indexName} está ativo!");
+    }
+
+    /// <summary>
+    /// Carrega produtos iniciais na tabela (idempotente - não insere se já existir)
+    /// </summary>
+    static async Task SeedInitialProductsAsync(IAmazonDynamoDB client)
+    {
+        Console.WriteLine("Iniciando carga inicial de produtos...");
+
+        var tableName = DynamoDbTableConfiguration.FASTFOOD_PRODUCTS_TABLE;
+
+        // Verificar se a tabela existe antes de tentar inserir
+        try
+        {
+            await client.DescribeTableAsync(new DescribeTableRequest { TableName = tableName });
+        }
+        catch (ResourceNotFoundException)
+        {
+            Console.WriteLine($"Tabela {tableName} não existe. Pulando carga inicial.");
+            return;
+        }
+
+        var products = GetInitialProducts();
+
+        int inserted = 0;
+        int skipped = 0;
+
+        foreach (var product in products)
+        {
+            var productId = product[DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE].S;
+
+            // Verificar se produto já existe
+            var getRequest = new GetItemRequest
+            {
+                TableName = tableName,
+                Key = new Dictionary<string, AttributeValue>
+                {
+                    { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = productId } }
+                }
+            };
+
+            var getResponse = await client.GetItemAsync(getRequest);
+
+            if (getResponse.Item.Any())
+            {
+                Console.WriteLine($"Produto {productId} já existe. Pulando inserção.");
+                skipped++;
+                continue;
+            }
+
+            // Inserir produto
+            var putRequest = new PutItemRequest
+            {
+                TableName = tableName,
+                Item = product
+            };
+
+            await client.PutItemAsync(putRequest);
+            Console.WriteLine($"Produto {productId} inserido com sucesso.");
+            inserted++;
+        }
+
+        Console.WriteLine($"Carga inicial concluída: {inserted} produtos inseridos, {skipped} produtos já existentes.");
+    }
+
+    /// <summary>
+    /// Retorna lista de produtos iniciais para carga
+    /// </summary>
+    static List<Dictionary<string, AttributeValue>> GetInitialProducts()
+    {
+        var products = new List<Dictionary<string, AttributeValue>>();
+
+        // Produto 1: Hambúrguer Artesanal
+        products.Add(new Dictionary<string, AttributeValue>
+        {
+            { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = "de904cba-a00b-48f1-a362-6cf9d196ec5f" } },
+            { "Name", new AttributeValue { S = "Hambúrguer Artesanal" } },
+            { DynamoDbTableConfiguration.NAME_ATTRIBUTE, new AttributeValue { S = "Hambúrguer Artesanal" } },
+            { "Description", new AttributeValue { S = "Hambúrguer artesanal com carne 180g e queijo cheddar" } },
+            { DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE, new AttributeValue { N = "1" } },
+            { "Price", new AttributeValue { N = "24.0" } },
+            { "ImageUrl", new AttributeValue { S = "https://images.pexels.com/photos/1639562/pexels-photo-1639562.jpeg" } },
+            { "IsActive", new AttributeValue { BOOL = true } },
+            { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = "2025-01-01T00:00:00Z" } },
+            { "BaseIngredients", new AttributeValue
+                {
+                    L = new List<AttributeValue>
+                    {
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "e2d3724b-9cca-49e0-82e5-96109f3442db" } },
+                            { "Name", new AttributeValue { S = "Pão de Brioche" } },
+                            { "Price", new AttributeValue { N = "2.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "a23ab374-d82d-4025-a116-25ef6cd25c63" } },
+                            { "Name", new AttributeValue { S = "Carne 180g" } },
+                            { "Price", new AttributeValue { N = "15.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "1a4409e0-3307-4419-92d5-485e3e302493" } },
+                            { "Name", new AttributeValue { S = "Queijo Cheddar" } },
+                            { "Price", new AttributeValue { N = "3.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "fbafa1c2-62b3-40c4-9084-2509af6a263a" } },
+                            { "Name", new AttributeValue { S = "Alface" } },
+                            { "Price", new AttributeValue { N = "1.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "924aefd6-0d50-4018-8299-52d23760467f" } },
+                            { "Name", new AttributeValue { S = "Tomate" } },
+                            { "Price", new AttributeValue { N = "1.0" } }
+                        }}
+                    }
+                }
+            }
+        });
+
+        // Produto 2: Pizza Margherita
+        products.Add(new Dictionary<string, AttributeValue>
+        {
+            { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = "758621ad-3807-4a84-af7d-ce8c64245c48" } },
+            { "Name", new AttributeValue { S = "Pizza Margherita" } },
+            { DynamoDbTableConfiguration.NAME_ATTRIBUTE, new AttributeValue { S = "Pizza Margherita" } },
+            { "Description", new AttributeValue { S = "Pizza tradicional italiana com mussarela e manjericão" } },
+            { DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE, new AttributeValue { N = "1" } },
+            { "Price", new AttributeValue { N = "30.0" } },
+            { "ImageUrl", new AttributeValue { S = "https://images.pexels.com/photos/10068752/pexels-photo-10068752.jpeg" } },
+            { "IsActive", new AttributeValue { BOOL = true } },
+            { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = "2025-01-01T00:00:00Z" } },
+            { "BaseIngredients", new AttributeValue
+                {
+                    L = new List<AttributeValue>
+                    {
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "e05445ae-0ea3-4bb3-a0c7-bf6ee7b40538" } },
+                            { "Name", new AttributeValue { S = "Massa" } },
+                            { "Price", new AttributeValue { N = "5.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "276bfc29-7c0a-4ed1-8e08-df579f4427cc" } },
+                            { "Name", new AttributeValue { S = "Molho" } },
+                            { "Price", new AttributeValue { N = "3.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "25826a5e-8be5-47ff-8548-95a2d1cba3de" } },
+                            { "Name", new AttributeValue { S = "Mussarela" } },
+                            { "Price", new AttributeValue { N = "8.0" } }
+                        }},
+                        new AttributeValue { M = new Dictionary<string, AttributeValue>
+                        {
+                            { "Id", new AttributeValue { S = "6222dc26-45ff-47de-b3e7-9a99e933c3e1" } },
+                            { "Name", new AttributeValue { S = "Manjericão" } },
+                            { "Price", new AttributeValue { N = "1.0" } }
+                        }}
+                    }
+                }
+            }
+        });
+
+        // Produto 3: Refrigerante Cola 350ml
+        products.Add(new Dictionary<string, AttributeValue>
+        {
+            { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = "9a8a232b-d238-429a-9d89-820373ad5f50" } },
+            { "Name", new AttributeValue { S = "Refrigerante Cola 350ml" } },
+            { DynamoDbTableConfiguration.NAME_ATTRIBUTE, new AttributeValue { S = "Refrigerante Cola 350ml" } },
+            { "Description", new AttributeValue { S = "Refrigerante cola tradicional 350ml" } },
+            { DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE, new AttributeValue { N = "2" } },
+            { "Price", new AttributeValue { N = "6.0" } },
+            { "ImageUrl", new AttributeValue { S = "https://images.pexels.com/photos/2983100/pexels-photo-2983100.jpeg" } },
+            { "IsActive", new AttributeValue { BOOL = true } },
+            { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = "2025-01-01T00:00:00Z" } }
+        });
+
+        // Produto 4: Batata Frita
+        products.Add(new Dictionary<string, AttributeValue>
+        {
+            { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = "3667e0c8-151a-4dc2-9dd7-a42dde596f34" } },
+            { "Name", new AttributeValue { S = "Batata Frita" } },
+            { DynamoDbTableConfiguration.NAME_ATTRIBUTE, new AttributeValue { S = "Batata Frita" } },
+            { "Description", new AttributeValue { S = "Batata frita crocante porção média" } },
+            { DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE, new AttributeValue { N = "3" } },
+            { "Price", new AttributeValue { N = "12.0" } },
+            { "ImageUrl", new AttributeValue { S = "https://images.pexels.com/photos/1586942/pexels-photo-1586942.jpeg" } },
+            { "IsActive", new AttributeValue { BOOL = true } },
+            { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = "2025-01-01T00:00:00Z" } }
+        });
+
+        // Produto 5: Brownie de Chocolate
+        products.Add(new Dictionary<string, AttributeValue>
+        {
+            { DynamoDbTableConfiguration.PRODUCT_ID_ATTRIBUTE, new AttributeValue { S = "60d17e4d-2496-410a-8598-a7d11579dceb" } },
+            { "Name", new AttributeValue { S = "Brownie de Chocolate" } },
+            { DynamoDbTableConfiguration.NAME_ATTRIBUTE, new AttributeValue { S = "Brownie de Chocolate" } },
+            { "Description", new AttributeValue { S = "Brownie caseiro de chocolate" } },
+            { DynamoDbTableConfiguration.CATEGORY_ATTRIBUTE, new AttributeValue { N = "4" } },
+            { "Price", new AttributeValue { N = "9.0" } },
+            { "ImageUrl", new AttributeValue { S = "https://images.pexels.com/photos/2067396/pexels-photo-2067396.jpeg" } },
+            { "IsActive", new AttributeValue { BOOL = true } },
+            { DynamoDbTableConfiguration.CREATED_AT_ATTRIBUTE, new AttributeValue { S = "2025-01-01T00:00:00Z" } }
+        });
+
+        return products;
     }
 }
