@@ -1,9 +1,10 @@
 # Storie-03: Migrar MySQL/EF Core para DynamoDB
 
 ## Status
-- **Estado:** 📋 Planejamento
-- **Data de Início:** [DD/MM/AAAA]
-- **Data de Conclusão:** [DD/MM/AAAA]
+- **Estado:** ✅ Implementação Concluída (Parcial)
+- **Data de Início:** 28/12/2024
+- **Data de Conclusão:** 28/12/2024
+- **Observação:** Subtask 09 pendente (UseCases ainda não implementados)
 
 ## Descrição
 Como desenvolvedor, preciso migrar o módulo FastFood do repositório `fiap-fase3-aplicacao\fiap-fastfood` de MySQL/EF Core para DynamoDB, mantendo o máximo possível do comportamento atual das APIs, fluxos e regras de domínio. A migração deve seguir a "Solução A" (1 tabela para Orders, 1 tabela para Products) e respeitar integralmente a arquitetura já adotada no projeto.

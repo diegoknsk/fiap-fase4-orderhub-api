@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Core\FastFood.OrderHub.Application\FastFood.OrderHub.Application.csproj" />
     <ProjectReference Include="..\..\Core\FastFood.OrderHub.CrossCutting\FastFood.OrderHub.CrossCutting.csproj" />
+    <ProjectReference Include="..\..\Infra\FastFood.OrderHub.Infra.Persistence\FastFood.OrderHub.Infra.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
