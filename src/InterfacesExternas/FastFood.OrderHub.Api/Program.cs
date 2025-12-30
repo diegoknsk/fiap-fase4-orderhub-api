@@ -1,8 +1,13 @@
 using Amazon.DynamoDBv2;
+using FastFood.OrderHub.Api.Auth;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Infra.Persistence.Configurations;
 using FastFood.OrderHub.Infra.Persistence.DataSources;
 using FastFood.OrderHub.Infra.Persistence.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +15,62 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// Configure JWT options
+//builder.Services.Configure<JwtOptions>("Admin", builder.Configuration.GetSection("JwtAdmin"));
+builder.Services.Configure<JwtOptions>("Customer", builder.Configuration.GetSection("JwtCustomer"));
+
+// Helper function to build token validation parameters
+static TokenValidationParameters BuildParams(IConfiguration cfg, string section)
+{
+    var issuer = cfg[$"{section}:Issuer"];
+    var audience = cfg[$"{section}:Audience"];
+    var secret = cfg[$"{section}:SecretKey"];
+
+    return new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret!)),
+        ClockSkew = TimeSpan.FromSeconds(30),
+
+        // *** Critical point to recognize "role" as role ***
+        RoleClaimType = "role",
+        NameClaimType = JwtRegisteredClaimNames.Sub
+    };
+}
+
+// Configure authentication with JWT schemes
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer("CustomerBearer", o =>
+    {
+        o.TokenValidationParameters = BuildParams(builder.Configuration, "JwtCustomer");
+    })
+    .AddCognitoJwtBearer(builder.Configuration);
+
+// Configure authorization policies
+builder.Services.AddAuthorization(opts =>
+{
+    // Pol�tica para Admin (Cognito)
+    opts.AddPolicy("Admin", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("scope", "aws.cognito.signin.user.admin");
+    });
+
+    opts.AddPolicy("Customer", p => p.RequireAuthenticatedUser());
+    opts.AddPolicy("CustomerWithScope", p => p.RequireAssertion(ctx =>
+        ctx.User.HasClaim("role", "customer") && ctx.User.HasClaim("scope", "customer")));
+});
+
 
 // Configurar DynamoDB
 var dynamoDbConfig = builder.Configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>() 
@@ -74,6 +135,7 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

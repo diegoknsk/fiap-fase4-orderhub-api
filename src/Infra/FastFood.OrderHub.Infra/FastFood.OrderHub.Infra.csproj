@@ -8,6 +8,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\FastFood.OrderHub.Application\FastFood.OrderHub.Application.csproj" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.16" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="CognitoService\" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@ using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.Models.Common;
 using FastFood.OrderHub.Application.Responses.ProductManagement;
 using FastFood.OrderHub.Application.UseCases.ProductManagement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastFood.OrderHub.Api.Controllers;
@@ -36,6 +37,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Listar produtos paginados
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<GetProductsPagedResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? category = null, [FromQuery] string? name = null)
