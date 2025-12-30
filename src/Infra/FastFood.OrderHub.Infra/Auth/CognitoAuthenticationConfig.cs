@@ -1,11 +1,20 @@
-﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-namespace FastFood.OrderHub.Api.Auth
-{
 
+namespace FastFood.OrderHub.Infra.Auth
+{
+    /// <summary>
+    /// Configuração de autenticação JWT Bearer para Cognito
+    /// </summary>
     public static class CognitoAuthenticationConfig
     {
+        /// <summary>
+        /// Adiciona autenticação JWT Bearer para Cognito
+        /// </summary>
         public static AuthenticationBuilder AddCognitoJwtBearer(this AuthenticationBuilder authBuilder, IConfiguration configuration)
         {
             // Configurar CognitoOptions
@@ -17,8 +26,7 @@ namespace FastFood.OrderHub.Api.Auth
             configuration.GetSection(CognitoOptions.SectionName).Bind(cognito);
 
             // Adicionar JWT Bearer para Cognito
-            return authBuilder
-                .AddJwtBearer("Cognito", options =>
+            return authBuilder.AddJwtBearer("Cognito", options =>
                 {
                     options.Authority = cognito.Authority;
                     options.RequireHttpsMetadata = false; // Para desenvolvimento local
@@ -87,3 +95,4 @@ namespace FastFood.OrderHub.Api.Auth
         }
     }
 }
+

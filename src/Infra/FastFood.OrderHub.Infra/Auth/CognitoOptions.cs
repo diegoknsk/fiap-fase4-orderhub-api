@@ -1,4 +1,4 @@
-﻿namespace FastFood.OrderHub.Api.Auth
+namespace FastFood.OrderHub.Infra.Auth
 {
     public sealed class CognitoOptions
     {
@@ -10,3 +10,4 @@
         public string Authority => $"https://cognito-idp.{Region}.amazonaws.com/{UserPoolId}";
     }
 }
+
