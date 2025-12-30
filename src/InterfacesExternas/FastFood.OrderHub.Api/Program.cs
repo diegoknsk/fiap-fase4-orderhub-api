@@ -9,6 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
+// Desabilitar mapeamento automático de claims do JWT
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

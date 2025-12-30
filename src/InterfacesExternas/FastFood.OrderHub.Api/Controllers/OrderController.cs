@@ -2,6 +2,7 @@ using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.Models.Common;
 using FastFood.OrderHub.Application.Responses.OrderManagement;
 using FastFood.OrderHub.Application.UseCases.OrderManagement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastFood.OrderHub.Api.Controllers;
@@ -42,6 +43,7 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Listar pedidos paginados
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<GetPagedOrdersResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? status = null)
@@ -60,6 +62,7 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Obter pedido por ID
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status404NotFound)]
@@ -77,6 +80,8 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Iniciar novo pedido
     /// </summary>
+    /// 
+    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpPost("start")]
     [ProducesResponseType(typeof(ApiResponse<StartOrderResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<StartOrderResponse>), StatusCodes.Status400BadRequest)]
@@ -100,6 +105,7 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Adicionar produto ao pedido
     /// </summary>
+    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpPost("add-product")]
     [ProducesResponseType(typeof(ApiResponse<AddProductToOrderResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<AddProductToOrderResponse>), StatusCodes.Status404NotFound)]
@@ -128,6 +134,7 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Atualizar produto no pedido
     /// </summary>
+    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpPut("update-product")]
     [ProducesResponseType(typeof(ApiResponse<UpdateProductInOrderResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<UpdateProductInOrderResponse>), StatusCodes.Status404NotFound)]
@@ -156,6 +163,7 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Remover produto do pedido
     /// </summary>
+    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpDelete("remove-product")]
     [ProducesResponseType(typeof(ApiResponse<RemoveProductFromOrderResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<RemoveProductFromOrderResponse>), StatusCodes.Status404NotFound)]
@@ -172,6 +180,7 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Confirmar seleção do pedido
     /// </summary>
+    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpPost("{id}/confirm-selection")]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status404NotFound)]
