@@ -2,6 +2,7 @@
 using Amazon.DynamoDBv2.Model;
 using FastFood.OrderHub.Infra.Persistence.Configurations;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 
 namespace FastFood.OrderHub.Migrator;
 
@@ -9,6 +10,49 @@ class Program
 {
     static async Task Main(string[] args)
     {
+        // TESTE RÁPIDO DE CONEXÃO POSTGRESQL
+        Console.WriteLine("==========================================");
+        Console.WriteLine("TESTE DE CONEXÃO COM POSTGRESQL RDS");
+        Console.WriteLine("==========================================");
+        
+        var postgresConnectionString = "Host=fastfoodinfradbauth-auth-db.chcwyc6wsd8c.us-east-1.rds.amazonaws.com;Port=5432;Database=dbAuth;Username=dbadmin;Password=admin123";
+        
+        try
+        {
+            Console.WriteLine("\n[TESTE] Tentando conectar ao PostgreSQL RDS...");
+            await using var connection = new NpgsqlConnection(postgresConnectionString);
+            await connection.OpenAsync();
+            Console.WriteLine("[SUCESSO] Conexão estabelecida com sucesso!");
+            
+            Console.WriteLine("\n[TESTE] Executando SELECT * FROM Customers...");
+            await using var command = new NpgsqlCommand("SELECT * FROM Customers", connection);
+            await using var reader = await command.ExecuteReaderAsync();
+            
+            int rowCount = 0;
+            while (await reader.ReadAsync())
+            {
+                rowCount++;
+            }
+            
+            Console.WriteLine($"[SUCESSO] Query executada com sucesso! Total de registros encontrados: {rowCount}");
+            Console.WriteLine("\n==========================================");
+            Console.WriteLine("RESULTADO: CONEXÃO COM RDS FUNCIONANDO!");
+            Console.WriteLine("==========================================\n");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("\n[ERRO] Falha ao conectar/executar query no PostgreSQL RDS:");
+            Console.WriteLine($"  Mensagem: {ex.Message}");
+            Console.WriteLine($"  Tipo: {ex.GetType().Name}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
+            }
+            Console.WriteLine("\n==========================================");
+            Console.WriteLine("RESULTADO: FALHA NA CONEXÃO COM RDS!");
+            Console.WriteLine("==========================================\n");
+        }
+        
         Console.WriteLine("Iniciando migração do DynamoDB...");
         Console.WriteLine("==========================================");
 
