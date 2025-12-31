@@ -43,8 +43,8 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Listar pedidos paginados
     /// </summary>
-    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpGet]
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<GetPagedOrdersResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? status = null)
     {
@@ -62,8 +62,8 @@ public class OrderController : ControllerBase
     /// <summary>
     /// Obter pedido por ID
     /// </summary>
+    [HttpGet("{id:guid}")]
     [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
-    [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
@@ -181,7 +181,7 @@ public class OrderController : ControllerBase
     /// Confirmar seleção do pedido
     /// </summary>
     [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
-    [HttpPost("{id}/confirm-selection")]
+    [HttpPost("{id:guid}/confirm-selection")]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status400BadRequest)]
