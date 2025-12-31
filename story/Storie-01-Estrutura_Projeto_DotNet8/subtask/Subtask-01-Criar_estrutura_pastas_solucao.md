@@ -29,3 +29,4 @@ Criar a estrutura de diretórios conforme definido nas regras do projeto e criar
 - [ ] Estrutura de pastas segue o padrão definido em `orderhub-context.mdc`
 
 
+

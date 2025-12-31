@@ -40,3 +40,4 @@ Criar endpoint `/health` na API OrderHub para permitir que o Kubernetes realize 
 - [ ] Endpoint testado localmente e funcionando
 - [ ] Endpoint acessível após deploy no Kubernetes
 
+

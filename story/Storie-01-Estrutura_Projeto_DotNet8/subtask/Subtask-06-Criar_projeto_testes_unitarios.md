@@ -36,3 +36,4 @@ Criar o projeto de testes unitários usando xUnit, adicionar referências necess
 - [ ] Referência ao Domain (ou outro projeto core) configurada
 
 
+

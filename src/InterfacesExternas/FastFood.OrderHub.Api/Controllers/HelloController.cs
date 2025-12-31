@@ -1,3 +1,4 @@
+using FastFood.OrderHub.Application.Models.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastFood.OrderHub.Api.Controllers;
@@ -16,7 +17,7 @@ public class HelloController : ControllerBase
     [HttpGet]
     public IActionResult Get()
     {
-        return Ok(new { message = "olá mundo" });
+        return Ok(ApiResponse<object>.Ok(new { message = "olá mundo" }));
     }
 }
 

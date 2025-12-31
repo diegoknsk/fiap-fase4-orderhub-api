@@ -62,3 +62,4 @@ Criar workflow do GitHub Actions que faz build das imagens Docker da API e do Mi
 - [ ] Validação de imagens após push funcionando
 - [ ] Workflow usando commit SHA hash completo para actions (conforme ARCHITECTURE_RULES.md)
 
+

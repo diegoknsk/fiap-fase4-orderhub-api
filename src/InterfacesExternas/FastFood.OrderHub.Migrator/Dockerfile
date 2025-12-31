@@ -57,3 +57,4 @@ ENV DOTNET_ENVIRONMENT=Production
 # Entrypoint
 ENTRYPOINT ["dotnet", "FastFood.OrderHub.Migrator.dll"]
 
+

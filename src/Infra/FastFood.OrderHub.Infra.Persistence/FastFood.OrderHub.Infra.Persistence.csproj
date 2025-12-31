@@ -10,4 +10,8 @@
     <ProjectReference Include="..\..\Core\FastFood.OrderHub.Application\FastFood.OrderHub.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.400" />
+  </ItemGroup>
+
 </Project>

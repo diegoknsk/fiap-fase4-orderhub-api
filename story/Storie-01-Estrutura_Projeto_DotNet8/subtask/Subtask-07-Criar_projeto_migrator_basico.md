@@ -30,3 +30,4 @@ Criar o projeto Migrator como Console Application .NET 8, que será usado futura
 - [ ] Projeto pronto para futuras implementações de migração DynamoDB
 
 
+
