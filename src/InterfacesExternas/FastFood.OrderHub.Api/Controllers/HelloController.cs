@@ -35,7 +35,44 @@ public class HelloController : ControllerBase
             await using var connection = new NpgsqlConnection(postgresConnectionString);
             await connection.OpenAsync();
             
-            await using var command = new NpgsqlCommand("SELECT * FROM Customers", connection);
+            // Primeiro, listar todas as tabelas para ver o que existe
+            var tablesList = new List<string>();
+            await using (var cmdTables = new NpgsqlCommand(@"
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                ORDER BY table_name", connection))
+            {
+                await using var readerTables = await cmdTables.ExecuteReaderAsync();
+                while (await readerTables.ReadAsync())
+                {
+                    tablesList.Add(readerTables.GetString(0));
+                }
+            }
+            
+            // Tentar encontrar a tabela Customers (pode ser Customers, customers, ou "Customers")
+            string? tableName = null;
+            if (tablesList.Contains("Customers"))
+                tableName = "Customers";
+            else if (tablesList.Contains("customers"))
+                tableName = "customers";
+            else if (tablesList.Any(t => t.Equals("Customers", StringComparison.OrdinalIgnoreCase)))
+                tableName = tablesList.First(t => t.Equals("Customers", StringComparison.OrdinalIgnoreCase));
+            
+            if (tableName == null)
+            {
+                return Ok(ApiResponse<object>.Ok(new
+                {
+                    success = true,
+                    connectionStatus = "CONEXÃO COM RDS ESTABELECIDA COM SUCESSO! ✅",
+                    message = "Tabela Customers não encontrada. A migration ainda não foi executada.",
+                    availableTables = tablesList,
+                    totalTables = tablesList.Count
+                }));
+            }
+            
+            // Se encontrou a tabela, executar o SELECT
+            await using var command = new NpgsqlCommand($"SELECT * FROM \"{tableName}\"", connection);
             await using var reader = await command.ExecuteReaderAsync();
             
             var customers = new List<Dictionary<string, object>>();
@@ -55,9 +92,12 @@ public class HelloController : ControllerBase
             return Ok(ApiResponse<object>.Ok(new
             {
                 success = true,
-                message = "Conexão com RDS estabelecida com sucesso!",
+                connectionStatus = "CONEXÃO COM RDS ESTABELECIDA COM SUCESSO! ✅",
+                message = "Query executada com sucesso!",
+                tableName = tableName,
                 totalRecords = rowCount,
-                customers = customers
+                customers = customers,
+                availableTables = tablesList
             }));
         }
         catch (Exception ex)
@@ -65,6 +105,7 @@ public class HelloController : ControllerBase
             return Ok(ApiResponse<object>.Ok(new
             {
                 success = false,
+                connectionStatus = "FALHA NA CONEXÃO COM RDS! ❌",
                 message = "Falha ao conectar/executar query no PostgreSQL RDS",
                 error = ex.Message,
                 errorType = ex.GetType().Name,
