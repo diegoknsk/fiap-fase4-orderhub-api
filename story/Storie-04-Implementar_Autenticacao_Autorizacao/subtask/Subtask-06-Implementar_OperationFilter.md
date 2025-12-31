@@ -29,3 +29,4 @@ O filtro:
 3. Verificar que endpoints com `[Authorize(AuthenticationSchemes = "CustomerBearer")]` mostram botão "Authorize" com esquema CustomerBearer
 4. Verificar que respostas 401 e 403 estão documentadas
 
+

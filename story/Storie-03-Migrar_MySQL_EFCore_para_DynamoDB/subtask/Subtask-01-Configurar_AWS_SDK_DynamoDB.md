@@ -33,3 +33,4 @@ dotnet build
 - [ ] Projeto compila sem erros
 - [ ] Dependências restauradas corretamente
 
+

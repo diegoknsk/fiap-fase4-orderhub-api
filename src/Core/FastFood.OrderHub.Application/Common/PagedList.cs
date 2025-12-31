@@ -14,3 +14,4 @@ public class PagedList<T>
     public bool HasNextPage => Page < TotalPages;
 }
 
+

@@ -29,3 +29,4 @@ public class ProductSummaryOutputModel
     public DateTime CreatedAt { get; set; }
 }
 
+

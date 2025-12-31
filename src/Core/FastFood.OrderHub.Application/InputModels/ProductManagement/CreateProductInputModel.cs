@@ -22,3 +22,4 @@ public class CreateProductBaseIngredientInputModel
     public decimal Price { get; set; }
 }
 
+

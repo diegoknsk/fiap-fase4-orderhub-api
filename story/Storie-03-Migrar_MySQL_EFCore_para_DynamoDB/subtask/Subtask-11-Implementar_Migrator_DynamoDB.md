@@ -71,3 +71,4 @@ class Program
 - Migrator pode ser executado como K8s Job antes do deploy da API
 - Considerar adicionar opção de deletar tabelas (para desenvolvimento)
 
+

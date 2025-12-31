@@ -443,3 +443,4 @@ builder.Services.AddSwaggerGen(c =>
 - **Documentação AWS Cognito:** [AWS Cognito User Pools](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html)
 - **JWT.io:** [JWT Debugger](https://jwt.io/) - Para validar estrutura de tokens
 
+

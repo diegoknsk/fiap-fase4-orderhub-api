@@ -9,3 +9,4 @@ public class RemoveProductFromOrderInputModel
     public Guid OrderedProductId { get; set; }
 }
 
+

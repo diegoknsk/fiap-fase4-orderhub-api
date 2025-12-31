@@ -78,3 +78,4 @@ Ajustar UseCases que usam `IOrderedProductDataSource` separado, pois no DynamoDB
 - Todas as operações devem atualizar Order completo
 - OrderGateway.UpdateAsync deve atualizar Items também
 
+

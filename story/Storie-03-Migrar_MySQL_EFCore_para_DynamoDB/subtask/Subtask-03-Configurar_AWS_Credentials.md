@@ -53,3 +53,4 @@ Configurar acesso ao DynamoDB usando Access Key e Secret Key via variáveis de a
 - Credenciais sensíveis devem estar em variáveis de ambiente (não commitar no código)
 - Para desenvolvimento local, pode usar LocalStack com ServiceUrl
 
+

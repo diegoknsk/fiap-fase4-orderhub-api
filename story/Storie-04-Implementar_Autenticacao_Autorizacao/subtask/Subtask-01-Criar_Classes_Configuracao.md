@@ -53,3 +53,4 @@ public sealed class CognitoOptions
 - [ ] CognitoOptions tem a propriedade Authority calculada
 - [ ] Código compila sem erros
 
+

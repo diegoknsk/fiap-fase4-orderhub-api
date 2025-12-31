@@ -16,3 +16,4 @@ public class UpdateProductResponse
     public List<ProductBaseIngredientResponse> BaseIngredients { get; set; } = new();
 }
 
+

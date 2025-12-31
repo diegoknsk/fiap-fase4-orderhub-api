@@ -74,3 +74,4 @@ public async Task<IActionResult> ConfirmSelection(Guid id)
 - A validação de ownership será implementada na Subtask 09
 - Por enquanto, apenas a autenticação/autorização básica é aplicada
 
+

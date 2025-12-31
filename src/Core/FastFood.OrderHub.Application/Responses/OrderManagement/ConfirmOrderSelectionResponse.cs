@@ -10,3 +10,4 @@ public class ConfirmOrderSelectionResponse
     public decimal TotalPrice { get; set; }
 }
 
+

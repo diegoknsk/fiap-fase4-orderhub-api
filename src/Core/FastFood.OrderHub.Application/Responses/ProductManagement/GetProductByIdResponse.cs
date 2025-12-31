@@ -26,3 +26,4 @@ public class ProductBaseIngredientResponse
     public decimal Price { get; set; }
 }
 
+

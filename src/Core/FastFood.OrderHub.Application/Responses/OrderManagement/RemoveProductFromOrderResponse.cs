@@ -10,3 +10,4 @@ public class RemoveProductFromOrderResponse
     public decimal TotalPrice { get; set; }
 }
 
+

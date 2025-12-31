@@ -115,3 +115,4 @@ public static class CognitoAuthenticationConfig
 - [ ] Events configurados (OnAuthenticationFailed, OnTokenValidated)
 - [ ] Código compila sem erros
 
+

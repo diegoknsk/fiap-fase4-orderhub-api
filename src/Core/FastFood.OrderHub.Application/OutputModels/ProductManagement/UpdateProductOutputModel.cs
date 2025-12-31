@@ -16,3 +16,4 @@ public class UpdateProductOutputModel
     public List<ProductBaseIngredientOutputModel> BaseIngredients { get; set; } = new();
 }
 
+

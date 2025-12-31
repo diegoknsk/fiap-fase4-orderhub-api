@@ -150,3 +150,4 @@ curl -X GET http://orderhub-url/api/order/$ORDER_ID \
    - Cada validação faz uma query adicional
    - Considerar cache se necessário (futuro)
 
+

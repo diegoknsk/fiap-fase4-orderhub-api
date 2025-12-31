@@ -254,3 +254,4 @@ O workflow de deploy é executado automaticamente após a conclusão bem-sucedid
 4. **Rollback Automático**: O workflow de deploy tenta fazer rollback automaticamente em caso de falha no deployment
 5. **Validação de Imagens**: As imagens são validadas no ECR antes do deploy para garantir que existem
 
+

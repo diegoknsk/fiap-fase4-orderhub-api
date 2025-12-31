@@ -65,3 +65,4 @@ Implementar `OrderDynamoDbDataSource` que implementa `IOrderDataSource` e usa `O
 - Não alterar contratos de DTOs (mantém compatibilidade com UseCases)
 - Paginação DynamoDB é diferente de EF Core (adaptar lógica)
 
+

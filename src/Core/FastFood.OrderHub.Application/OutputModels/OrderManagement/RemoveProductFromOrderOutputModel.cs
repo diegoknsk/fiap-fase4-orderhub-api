@@ -10,3 +10,4 @@ public class RemoveProductFromOrderOutputModel
     public decimal TotalPrice { get; set; }
 }
 
+

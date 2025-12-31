@@ -122,3 +122,4 @@ public class AuthorizeBySchemeOperationFilter : IOperationFilter
 3. Clicar em "Authorize" e verificar que o esquema correto está disponível
 4. Inserir token e testar endpoint
 
+

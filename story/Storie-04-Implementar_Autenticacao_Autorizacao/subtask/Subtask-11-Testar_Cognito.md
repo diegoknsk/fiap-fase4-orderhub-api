@@ -116,3 +116,4 @@ curl -X POST http://orderhub-url/api/order/start \
    - Causa: Token inválido ou malformado
    - Solução: Verificar que o token está correto
 
+

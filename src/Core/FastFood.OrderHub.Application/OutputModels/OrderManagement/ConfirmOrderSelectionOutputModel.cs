@@ -10,3 +10,4 @@ public class ConfirmOrderSelectionOutputModel
     public decimal TotalPrice { get; set; }
 }
 
+

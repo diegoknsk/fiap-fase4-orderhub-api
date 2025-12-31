@@ -24,3 +24,4 @@ public class UpdateProductBaseIngredientInputModel
     public decimal Price { get; set; }
 }
 
+

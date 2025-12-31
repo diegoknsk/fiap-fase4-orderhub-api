@@ -9,3 +9,4 @@ public class DeleteProductOutputModel
     public bool Success { get; set; }
 }
 
+

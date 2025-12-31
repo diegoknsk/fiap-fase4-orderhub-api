@@ -127,3 +127,4 @@ app.UseAuthorization();
 3. **NameClaimType:**
    - Configurado como `JwtRegisteredClaimNames.Sub` para facilitar extração do CustomerId
 
+

@@ -157,3 +157,4 @@ public async Task<IActionResult> ConfirmSelection(Guid id)
    - A validação faz uma query adicional ao banco
    - Considerar cache se necessário (futuro)
 
+

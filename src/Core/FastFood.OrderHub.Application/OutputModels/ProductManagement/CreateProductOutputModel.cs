@@ -16,3 +16,4 @@ public class CreateProductOutputModel
     public List<ProductBaseIngredientOutputModel> BaseIngredients { get; set; } = new();
 }
 
+

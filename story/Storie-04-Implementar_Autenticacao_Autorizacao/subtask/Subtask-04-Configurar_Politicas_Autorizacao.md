@@ -60,3 +60,4 @@ builder.Services.AddAuthorization(options =>
    - Apenas requer autenticação
    - Validação adicional de ownership será implementada nos controllers
 
+

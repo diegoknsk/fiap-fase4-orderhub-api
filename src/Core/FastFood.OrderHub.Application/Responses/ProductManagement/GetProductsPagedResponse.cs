@@ -29,3 +29,4 @@ public class ProductSummaryResponse
     public DateTime CreatedAt { get; set; }
 }
 
+

@@ -10,3 +10,4 @@ public class UpdateProductInOrderOutputModel
     public decimal TotalPrice { get; set; }
 }
 
+
