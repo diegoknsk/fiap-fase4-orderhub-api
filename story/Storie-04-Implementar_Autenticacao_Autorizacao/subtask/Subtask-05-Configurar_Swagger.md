@@ -123,3 +123,4 @@ public class AuthorizeBySchemeOperationFilter : IOperationFilter
 4. Inserir token e testar endpoint
 
 
+

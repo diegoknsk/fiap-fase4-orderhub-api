@@ -54,3 +54,4 @@ public sealed class CognitoOptions
 - [ ] Código compila sem erros
 
 
+

@@ -33,15 +33,15 @@ builder.Services
 builder.Services.AddAuthorizationPolicies();
 
 // Configurar DynamoDB
-var dynamoDbConfig = builder.Configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>() 
-    ?? new DynamoDbConfiguration
-    {
-        AccessKey = builder.Configuration["DynamoDb:AccessKey"] ?? Environment.GetEnvironmentVariable("DYNAMODB__ACCESSKEY") ?? string.Empty,
-        SecretKey = builder.Configuration["DynamoDb:SecretKey"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SECRETKEY") ?? string.Empty,
-        SessionToken = builder.Configuration["DynamoDb:SessionToken"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SESSIONTOKEN"),
-        Region = builder.Configuration["DynamoDb:Region"] ?? Environment.GetEnvironmentVariable("DYNAMODB__REGION") ?? "us-east-1",
-        ServiceUrl = builder.Configuration["DynamoDb:ServiceUrl"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SERVICEURL")
-    };
+// O AddEnvironmentVariables() do WebApplication.CreateBuilder já converte DynamoDb__AccessKey para DynamoDb:AccessKey automaticamente
+var dynamoDbConfig = builder.Configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>();
+        
+if (dynamoDbConfig == null || string.IsNullOrWhiteSpace(dynamoDbConfig.AccessKey) || string.IsNullOrWhiteSpace(dynamoDbConfig.SecretKey))
+{
+    throw new InvalidOperationException(
+        "Configuração do DynamoDB não encontrada ou incompleta. " +
+        "Verifique se as variáveis de ambiente DynamoDb__AccessKey e DynamoDb__SecretKey estão configuradas.");
+}
 
 builder.Services.AddSingleton<IAmazonDynamoDB>(dynamoDbConfig.CreateDynamoDbClient());
 

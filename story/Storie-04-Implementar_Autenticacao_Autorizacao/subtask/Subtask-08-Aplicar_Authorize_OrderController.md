@@ -75,3 +75,4 @@ public async Task<IActionResult> ConfirmSelection(Guid id)
 - Por enquanto, apenas a autenticação/autorização básica é aplicada
 
 
+

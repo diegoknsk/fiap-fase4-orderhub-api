@@ -14,19 +14,34 @@ class Program
         // Configurar DynamoDB client
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables() // Converte DynamoDb__AccessKey para DynamoDb:AccessKey automaticamente
             .Build();
 
-        var dynamoDbConfig = configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>() 
-            ?? new DynamoDbConfiguration
-            {
-                AccessKey = configuration["DynamoDb:AccessKey"] ?? Environment.GetEnvironmentVariable("DYNAMODB__ACCESSKEY") ?? string.Empty,
-                SecretKey = configuration["DynamoDb:SecretKey"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SECRETKEY") ?? string.Empty,
-                SessionToken = configuration["DynamoDb:SessionToken"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SESSIONTOKEN"),
-                Region = configuration["DynamoDb:Region"] ?? Environment.GetEnvironmentVariable("DYNAMODB__REGION") ?? "us-east-1",
-                ServiceUrl = configuration["DynamoDb:ServiceUrl"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SERVICEURL")
-            };
+        var dynamoDbConfig = configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>();
+        
+        if (dynamoDbConfig == null)
+        {
+            Console.WriteLine("ERRO: Configuração do DynamoDB não encontrada!");
+            Console.WriteLine("Verificando variáveis de ambiente...");
+            Console.WriteLine($"DynamoDb__AccessKey presente: {!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DynamoDb__AccessKey"))}");
+            Console.WriteLine($"DynamoDb__SecretKey presente: {!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DynamoDb__SecretKey"))}");
+            Console.WriteLine($"DynamoDb__SessionToken presente: {!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DynamoDb__SessionToken"))}");
+            Console.WriteLine($"DynamoDb__Region: {Environment.GetEnvironmentVariable("DynamoDb__Region") ?? "não definido"}");
+            Environment.Exit(1);
+        }
+
+        // Validar credenciais
+        if (string.IsNullOrWhiteSpace(dynamoDbConfig.AccessKey) || string.IsNullOrWhiteSpace(dynamoDbConfig.SecretKey))
+        {
+            Console.WriteLine("ERRO: AccessKey ou SecretKey do DynamoDB não configurados!");
+            Environment.Exit(1);
+        }
+
+        Console.WriteLine($"Configuração do DynamoDB carregada:");
+        Console.WriteLine($"  Region: {dynamoDbConfig.Region}");
+        Console.WriteLine($"  AccessKey: {dynamoDbConfig.AccessKey.Substring(0, Math.Min(10, dynamoDbConfig.AccessKey.Length))}...");
+        Console.WriteLine($"  SessionToken presente: {!string.IsNullOrWhiteSpace(dynamoDbConfig.SessionToken)}");
 
         var client = dynamoDbConfig.CreateDynamoDbClient();
 

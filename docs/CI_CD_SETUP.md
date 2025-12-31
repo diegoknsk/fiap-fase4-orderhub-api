@@ -255,3 +255,4 @@ O workflow de deploy é executado automaticamente após a conclusão bem-sucedid
 5. **Validação de Imagens**: As imagens são validadas no ECR antes do deploy para garantir que existem
 
 
+

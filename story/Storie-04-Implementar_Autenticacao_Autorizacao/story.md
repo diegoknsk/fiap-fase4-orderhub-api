@@ -444,3 +444,4 @@ builder.Services.AddSwaggerGen(c =>
 - **JWT.io:** [JWT Debugger](https://jwt.io/) - Para validar estrutura de tokens
 
 
+

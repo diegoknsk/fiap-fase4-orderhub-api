@@ -42,3 +42,4 @@ Criar arquivo `appsettings.json` no projeto Migrator. Este arquivo é **OBRIGAT�
 - [ ] Arquivo presente no container após build
 
 
+

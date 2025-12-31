@@ -54,3 +54,4 @@ Configurar acesso ao DynamoDB usando Access Key e Secret Key via variáveis de a
 - Para desenvolvimento local, pode usar LocalStack com ServiceUrl
 
 
+
