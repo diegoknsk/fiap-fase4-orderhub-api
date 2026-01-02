@@ -42,7 +42,7 @@ O workflow deve:
 
 **Erro comum**: `ERROR: You are running CI analysis while Automatic Analysis is enabled.`
 
-Para resolver este erro, é necessário **desabilitar a Análise Automática** no SonarCloud:
+Par a resolver este erro, é necessário **desabilitar a Análise Automática** no SonarCloud:
 
 1. Acesse o SonarCloud: https://sonarcloud.io
 2. Navegue até o projeto `diegoknsk_fiap-fase4-orderhub-api`
