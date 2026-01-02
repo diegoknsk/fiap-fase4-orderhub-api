@@ -25,6 +25,7 @@ Este documento define as regras e padrões para escrita de testes que devem ser 
 3. **Testes devem ser rápidos**: Testes unitários devem executar em milissegundos.
 4. **Testes devem ser legíveis**: O código de teste deve ser autoexplicativo e fácil de entender.
 5. **Testes devem ser mantíveis**: Mudanças no código de produção não devem quebrar testes desnecessariamente.
+6. **SEMPRE executar testes após criá-los**: Após criar ou modificar testes, SEMPRE executar `dotnet test` para verificar se compilam e passam corretamente antes de considerar a tarefa concluída.
 
 ### Framework de Testes
 
