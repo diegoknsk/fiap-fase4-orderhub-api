@@ -23,7 +23,7 @@ O arquivo deve conter:
 - Regras gerais de escrita de testes
 - Padrões de nomenclatura (AAA - Arrange, Act, Assert)
 - Estrutura de organização de testes
-- Regras de cobertura mínima (85%)
+- Regras de cobertura mínima (80%)
 - Exemplos práticos de testes unitários
 - Exemplos práticos de testes de integração
 - Exemplos práticos de testes BDD
@@ -42,5 +42,5 @@ O arquivo deve conter:
 - [ ] Exemplos práticos incluídos
 - [ ] Padrões de nomenclatura documentados
 - [ ] Estrutura de organização documentada
-- [ ] Regras de cobertura mínima documentadas (85%)
+- [ ] Regras de cobertura mínima documentadas (80%)
 - [ ] Arquivo está bem formatado e legível

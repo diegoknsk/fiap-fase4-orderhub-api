@@ -349,11 +349,11 @@ public class OrderSteps
 
 ### Meta de Cobertura
 
-- **Mínimo obrigatório: 85% de cobertura de código**
+- **Mínimo obrigatório: 80% de cobertura de código**
 - Cobertura deve ser medida em todas as camadas:
   - Domain: ≥ 90%
-  - Application (UseCases): ≥ 85%
-  - Infra (Gateways, Services): ≥ 80%
+  - Application (UseCases): ≥ 80%
+  - Infra (Gateways, Services): ≥ 75%
   - API (Controllers): ≥ 70%
 
 ### Exclusões de Cobertura

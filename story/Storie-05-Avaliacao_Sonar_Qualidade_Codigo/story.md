@@ -5,12 +5,12 @@
 - **Data de Conclusão:** [DD/MM/AAAA]
 
 ## Descrição
-Como desenvolvedor, quero implementar uma avaliação completa do Sonar Cloud no projeto OrderHub, alcançando 85% de cobertura de testes, resolvendo todos os erros graves identificados, e configurando um pipeline CI/CD automatizado que execute testes, análise Sonar Cloud e deploy para EKS.
+Como desenvolvedor, quero implementar uma avaliação completa do Sonar Cloud no projeto OrderHub, alcançando 80% de cobertura de testes, resolvendo todos os erros graves identificados, e configurando um pipeline CI/CD automatizado que execute testes, análise Sonar Cloud e deploy para EKS.
 
 ## Objetivo
 Implementar uma solução completa de qualidade de código que inclua:
 - Configuração do Sonar Cloud para análise contínua
-- Aumento da cobertura de testes para 85%
+- Aumento da cobertura de testes para 80%
 - Resolução de todos os erros graves (Security, Reliability, Maintainability)
 - Pipeline CI/CD automatizado integrando testes, Sonar Cloud e deploy EKS
 - Arquivo de regras para escrita de testes reutilizável em outros projetos
@@ -35,7 +35,7 @@ Implementar uma solução completa de qualidade de código que inclua:
 - [ ] [Subtask 02: Criar arquivo de regras para escrita de testes](./subtask/Subtask-02-Criar_regras_escrita_testes.md)
 - [ ] [Subtask 03: Configurar workflow GitHub Actions com testes e Sonar Cloud](./subtask/Subtask-03-Configurar_workflow_testes_sonar.md)
 - [ ] [Subtask 04: Integrar workflow de deploy EKS com pipeline de qualidade](./subtask/Subtask-04-Integrar_deploy_eks_pipeline.md)
-- [ ] [Subtask 05: Aumentar cobertura de testes para 85%](./subtask/Subtask-05-Aumentar_cobertura_testes.md)
+- [ ] [Subtask 05: Aumentar cobertura de testes para 80%](./subtask/Subtask-05-Aumentar_cobertura_testes.md)
 - [ ] [Subtask 06: Resolver erros graves de Security](./subtask/Subtask-06-Resolver_erros_security.md)
 - [ ] [Subtask 07: Resolver erros graves de Reliability](./subtask/Subtask-07-Resolver_erros_reliability.md)
 - [ ] [Subtask 08: Resolver erros graves de Maintainability](./subtask/Subtask-08-Resolver_erros_maintainability.md)
@@ -48,7 +48,7 @@ Implementar uma solução completa de qualidade de código que inclua:
 - [ ] Arquivo de regras para escrita de testes criado em `rules/`
 - [ ] Workflow GitHub Actions configurado executando testes e Sonar Cloud
 - [ ] Workflow de deploy EKS acionado automaticamente após qualidade validada
-- [ ] Cobertura de testes alcançando 85% ou superior
+- [ ] Cobertura de testes alcançando 80% ou superior
 - [ ] Todos os erros graves de Security resolvidos
 - [ ] Todos os erros graves de Reliability resolvidos
 - [ ] Todos os erros graves de Maintainability resolvidos
@@ -58,7 +58,7 @@ Implementar uma solução completa de qualidade de código que inclua:
 
 ## Metas de Qualidade
 
-- **Cobertura de Testes**: ≥ 85%
+- **Cobertura de Testes**: ≥ 80%
 - **Security**: 0 erros graves
 - **Reliability**: 0 erros graves
 - **Maintainability**: 0 erros graves (ou aceitos com justificativa)

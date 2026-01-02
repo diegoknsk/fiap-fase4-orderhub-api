@@ -47,6 +47,7 @@ jobs:
               /d:sonar.scanner.scanAll=false \
               /d:sonar.projectBaseDir="${{ github.workspace }}" \
               /d:sonar.sources="src" \
+              /d:sonar.qualitygate.wait=true \
               /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
               /d:sonar.pullrequest.branch="${{ github.head_ref }}" \
               /d:sonar.pullrequest.base="${{ github.base_ref }}"
@@ -59,7 +60,8 @@ jobs:
               /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs" \
               /d:sonar.scanner.scanAll=false \
               /d:sonar.projectBaseDir="${{ github.workspace }}" \
-              /d:sonar.sources="src"
+              /d:sonar.sources="src" \
+              /d:sonar.qualitygate.wait=true
           fi
 
       - name: Restore
