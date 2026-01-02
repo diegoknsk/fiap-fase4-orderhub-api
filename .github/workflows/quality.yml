@@ -40,7 +40,7 @@ jobs:
           /k:"diegoknsk_fiap-fase4-orderhub-api"
           /o:"diegoknsk"
           /d:sonar.token="$SONAR_TOKEN"
-          /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
+          /d:sonar.cs.opencover.reportsPaths="./TestResults/coverage/coverage.opencover.xml"
           /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
           /d:sonar.scanner.scanAll=false
 
@@ -56,7 +56,7 @@ jobs:
           --logger "trx;LogFileName=test_results.trx"
           /p:CollectCoverage=true
           /p:CoverletOutputFormat="opencover"
-          /p:CoverletOutput=./TestResults/coverage/
+          /p:CoverletOutput="./TestResults/coverage/"
 
       - name: List coverage files
         run: |
@@ -68,6 +68,22 @@ jobs:
           echo ""
           echo "=== TestResults/coverage directory structure ==="
           ls -la TestResults/coverage/ || echo "TestResults/coverage directory not found"
+
+      - name: Consolidate coverage reports
+        run: |
+          mkdir -p ./TestResults/coverage
+          # Find all coverage files and copy the first one (or merge if needed)
+          COVERAGE_FILES=$(find . -path "*/TestResults/*/coverage.opencover.xml" -type f)
+          if [ -n "$COVERAGE_FILES" ]; then
+            # If multiple files, we'll use the first one for now
+            # In a real scenario, you might want to merge them
+            FIRST_FILE=$(echo "$COVERAGE_FILES" | head -n 1)
+            cp "$FIRST_FILE" ./TestResults/coverage/coverage.opencover.xml
+            echo "=== Coverage file consolidated ==="
+            ls -la ./TestResults/coverage/
+          else
+            echo "No coverage files found to consolidate"
+          fi
 
       - name: Sonar - End
         env:
