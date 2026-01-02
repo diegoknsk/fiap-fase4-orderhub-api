@@ -7,6 +7,7 @@ on:
       - completed
     branches:
       - main
+  # Security: Only allow workflow_run from main branch to prevent execution of untrusted code from forks
   workflow_dispatch:
     inputs:
       skip_migrator:
@@ -36,7 +37,8 @@ jobs:
 
   deploy:
     needs: check-quality
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    # Security: Only deploy if workflow_run is from the same repository and main branch, or manual trigger
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     
     outputs:

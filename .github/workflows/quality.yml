@@ -56,6 +56,14 @@ jobs:
           /p:CollectCoverage=true
           /p:CoverletOutputFormat="opencover"
           /p:CoverletOutput="./TestResults/"
+          /p:ExcludeByAttribute="Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute"
+          /p:Exclude="[*]*.Migrations.*"
+
+      - name: List coverage files
+        run: |
+          echo "Coverage files generated:"
+          find . -name "coverage.opencover.xml" -type f || echo "No coverage files found"
+          ls -la TestResults/ || echo "TestResults directory not found"
 
       - name: Sonar - End
         env:
