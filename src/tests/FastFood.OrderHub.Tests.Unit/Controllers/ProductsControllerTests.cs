@@ -1,5 +1,7 @@
 using FastFood.OrderHub.Api.Controllers;
+using FastFood.OrderHub.Application.DTOs;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
+using FastFood.OrderHub.Application.Models.Common;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.ProductManagement;
 using FastFood.OrderHub.Application.Responses.ProductManagement;
@@ -82,9 +84,9 @@ public class ProductsControllerTests
 
         _productDataSourceMock
             .Setup(x => x.GetPagedAsync(1, 10, null, null))
-            .ReturnsAsync(new List<Application.DTOs.ProductDto>
+            .ReturnsAsync(new List<ProductDto>
             {
-                new Application.DTOs.ProductDto
+                new ProductDto
                 {
                     Id = response.Items[0].ProductId,
                     Name = response.Items[0].Name,
@@ -100,7 +102,7 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetProductsPagedResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<GetProductsPagedResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var returnedResponse = Assert.IsType<GetProductsPagedResponse>(apiResponse.Content);
@@ -122,7 +124,7 @@ public class ProductsControllerTests
 
         _productDataSourceMock
             .Setup(x => x.GetByIdAsync(productId))
-            .ReturnsAsync(new Application.DTOs.ProductDto
+            .ReturnsAsync(new ProductDto
             {
                 Id = productId,
                 Name = response.Name,
@@ -137,7 +139,7 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetProductByIdResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<GetProductByIdResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var returnedResponse = Assert.IsType<GetProductByIdResponse>(apiResponse.Content);
@@ -152,14 +154,14 @@ public class ProductsControllerTests
 
         _productDataSourceMock
             .Setup(x => x.GetByIdAsync(productId))
-            .ReturnsAsync((Application.DTOs.ProductDto?)null);
+            .ReturnsAsync((ProductDto?)null);
 
         // Act
         var result = await _controller.GetById(productId);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetProductByIdResponse>>(notFoundResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<GetProductByIdResponse>>(notFoundResult.Value);
         Assert.False(apiResponse.Success);
     }
 
@@ -183,7 +185,7 @@ public class ProductsControllerTests
         };
 
         _productDataSourceMock
-            .Setup(x => x.AddAsync(It.IsAny<Application.DTOs.ProductDto>()))
+            .Setup(x => x.AddAsync(It.IsAny<ProductDto>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -191,7 +193,7 @@ public class ProductsControllerTests
 
         // Assert
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<CreateProductResponse>>(createdResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<CreateProductResponse>>(createdResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var returnedResponse = Assert.IsType<CreateProductResponse>(apiResponse.Content);
@@ -243,7 +245,7 @@ public class ProductsControllerTests
 
         _productDataSourceMock
             .Setup(x => x.GetByIdAsync(productId))
-            .ReturnsAsync(new Application.DTOs.ProductDto
+            .ReturnsAsync(new ProductDto
             {
                 Id = productId,
                 Name = "Old Name",
@@ -254,7 +256,7 @@ public class ProductsControllerTests
             });
 
         _productDataSourceMock
-            .Setup(x => x.UpdateAsync(It.IsAny<Application.DTOs.ProductDto>()))
+            .Setup(x => x.UpdateAsync(It.IsAny<ProductDto>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -262,7 +264,7 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<UpdateProductResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<UpdateProductResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var returnedResponse = Assert.IsType<UpdateProductResponse>(apiResponse.Content);
@@ -285,14 +287,14 @@ public class ProductsControllerTests
 
         _productDataSourceMock
             .Setup(x => x.GetByIdAsync(productId))
-            .ReturnsAsync((Application.DTOs.ProductDto?)null);
+            .ReturnsAsync((ProductDto?)null);
 
         // Act
         var result = await _controller.Update(productId, input);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<UpdateProductResponse>>(notFoundResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<UpdateProductResponse>>(notFoundResult.Value);
         Assert.False(apiResponse.Success);
     }
 
@@ -311,7 +313,7 @@ public class ProductsControllerTests
 
         _productDataSourceMock
             .Setup(x => x.GetByIdAsync(productId))
-            .ReturnsAsync(new Application.DTOs.ProductDto
+            .ReturnsAsync(new ProductDto
             {
                 Id = productId,
                 Name = "Old Name",
@@ -354,7 +356,7 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<DeleteProductResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<DeleteProductResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var returnedResponse = Assert.IsType<DeleteProductResponse>(apiResponse.Content);
@@ -380,7 +382,7 @@ public class ProductsControllerTests
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<DeleteProductResponse>>(notFoundResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<DeleteProductResponse>>(notFoundResult.Value);
         Assert.False(apiResponse.Success);
     }
 }

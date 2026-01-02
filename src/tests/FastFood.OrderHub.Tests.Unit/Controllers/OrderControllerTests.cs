@@ -1,5 +1,7 @@
 using FastFood.OrderHub.Api.Controllers;
+using FastFood.OrderHub.Application.DTOs;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
+using FastFood.OrderHub.Application.Models.Common;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.OrderManagement;
 using FastFood.OrderHub.Application.Responses.OrderManagement;
@@ -79,14 +81,14 @@ public class OrderControllerTests
         // Arrange
         _orderDataSourceMock
             .Setup(x => x.GetPagedAsync(1, 10, null))
-            .ReturnsAsync(new List<Application.DTOs.OrderDto>());
+            .ReturnsAsync(new List<OrderDto>());
 
         // Act
         var result = await _controller.GetPaged(1, 10, null);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetPagedOrdersResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<GetPagedOrdersResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var response = Assert.IsType<GetPagedOrdersResponse>(apiResponse.Content);
@@ -98,7 +100,7 @@ public class OrderControllerTests
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var orderDto = new Application.DTOs.OrderDto
+        var orderDto = new OrderDto
         {
             Id = orderId,
             Code = "ORD-001",
@@ -106,7 +108,7 @@ public class OrderControllerTests
             CreatedAt = DateTime.UtcNow,
             OrderStatus = (int)EnumOrderStatus.Started,
             TotalPrice = 50.00m,
-            Items = new List<Application.DTOs.OrderedProductDto>()
+            Items = new List<OrderedProductDto>()
         };
 
         _orderDataSourceMock
@@ -118,7 +120,7 @@ public class OrderControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetOrderByIdResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<GetOrderByIdResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var response = Assert.IsType<GetOrderByIdResponse>(apiResponse.Content);
@@ -133,14 +135,14 @@ public class OrderControllerTests
 
         _orderDataSourceMock
             .Setup(x => x.GetByIdAsync(orderId))
-            .ReturnsAsync((Application.DTOs.OrderDto?)null);
+            .ReturnsAsync((OrderDto?)null);
 
         // Act
         var result = await _controller.GetById(orderId);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetOrderByIdResponse>>(notFoundResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<GetOrderByIdResponse>>(notFoundResult.Value);
         Assert.False(apiResponse.Success);
     }
 
@@ -158,7 +160,7 @@ public class OrderControllerTests
             .ReturnsAsync("ORD-001");
 
         _orderDataSourceMock
-            .Setup(x => x.AddAsync(It.IsAny<Application.DTOs.OrderDto>()))
+            .Setup(x => x.AddAsync(It.IsAny<OrderDto>()))
             .ReturnsAsync(Guid.NewGuid());
 
         // Act
@@ -166,7 +168,7 @@ public class OrderControllerTests
 
         // Assert
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<StartOrderResponse>>(createdResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<StartOrderResponse>>(createdResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var response = Assert.IsType<StartOrderResponse>(apiResponse.Content);
@@ -186,7 +188,7 @@ public class OrderControllerTests
             Quantity = 2
         };
 
-        var orderDto = new Application.DTOs.OrderDto
+        var orderDto = new OrderDto
         {
             Id = orderId,
             Code = "ORD-001",
@@ -194,10 +196,10 @@ public class OrderControllerTests
             CreatedAt = DateTime.UtcNow,
             OrderStatus = (int)EnumOrderStatus.Started,
             TotalPrice = 0,
-            Items = new List<Application.DTOs.OrderedProductDto>()
+            Items = new List<OrderedProductDto>()
         };
 
-        var productDto = new Application.DTOs.ProductDto
+        var productDto = new ProductDto
         {
             Id = productId,
             Name = "Test Product",
@@ -205,7 +207,7 @@ public class OrderControllerTests
             Price = 10.50m,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
-            BaseIngredients = new List<Application.DTOs.ProductBaseIngredientDto>()
+            BaseIngredients = new List<ProductBaseIngredientDto>()
         };
 
         _orderDataSourceMock
@@ -217,7 +219,7 @@ public class OrderControllerTests
             .ReturnsAsync(productDto);
 
         _orderDataSourceMock
-            .Setup(x => x.UpdateAsync(It.IsAny<Application.DTOs.OrderDto>()))
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -225,7 +227,7 @@ public class OrderControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<AddProductToOrderResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<AddProductToOrderResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var response = Assert.IsType<AddProductToOrderResponse>(apiResponse.Content);
@@ -246,14 +248,14 @@ public class OrderControllerTests
 
         _orderDataSourceMock
             .Setup(x => x.GetByIdAsync(orderId))
-            .ReturnsAsync((Application.DTOs.OrderDto?)null);
+            .ReturnsAsync((OrderDto?)null);
 
         // Act
         var result = await _controller.AddProduct(input);
 
         // Assert
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<AddProductToOrderResponse>>(notFoundResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<AddProductToOrderResponse>>(notFoundResult.Value);
         Assert.False(apiResponse.Success);
     }
 
@@ -269,7 +271,7 @@ public class OrderControllerTests
             OrderedProductId = orderedProductId
         };
 
-        var orderDto = new Application.DTOs.OrderDto
+        var orderDto = new OrderDto
         {
             Id = orderId,
             Code = "ORD-001",
@@ -277,16 +279,16 @@ public class OrderControllerTests
             CreatedAt = DateTime.UtcNow,
             OrderStatus = (int)EnumOrderStatus.Started,
             TotalPrice = 50.00m,
-            Items = new List<Application.DTOs.OrderedProductDto>
+            Items = new List<OrderedProductDto>
             {
-                new Application.DTOs.OrderedProductDto
+                new OrderedProductDto
                 {
                     Id = orderedProductId,
                     ProductId = Guid.NewGuid(),
                     OrderId = orderId,
                     Quantity = 2,
                     FinalPrice = 25.00m,
-                    CustomIngredients = new List<Application.DTOs.OrderedProductIngredientDto>()
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
                 }
             }
         };
@@ -296,7 +298,7 @@ public class OrderControllerTests
             .ReturnsAsync(orderDto);
 
         _orderDataSourceMock
-            .Setup(x => x.UpdateAsync(It.IsAny<Application.DTOs.OrderDto>()))
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -304,7 +306,7 @@ public class OrderControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<RemoveProductFromOrderResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<RemoveProductFromOrderResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var response = Assert.IsType<RemoveProductFromOrderResponse>(apiResponse.Content);
@@ -316,7 +318,7 @@ public class OrderControllerTests
     {
         // Arrange
         var orderId = Guid.NewGuid();
-        var orderDto = new Application.DTOs.OrderDto
+        var orderDto = new OrderDto
         {
             Id = orderId,
             Code = "ORD-001",
@@ -324,16 +326,16 @@ public class OrderControllerTests
             CreatedAt = DateTime.UtcNow,
             OrderStatus = (int)EnumOrderStatus.Started,
             TotalPrice = 50.00m,
-            Items = new List<Application.DTOs.OrderedProductDto>
+            Items = new List<OrderedProductDto>
             {
-                new Application.DTOs.OrderedProductDto
+                new OrderedProductDto
                 {
                     Id = Guid.NewGuid(),
                     ProductId = Guid.NewGuid(),
                     OrderId = orderId,
                     Quantity = 2,
                     FinalPrice = 25.00m,
-                    CustomIngredients = new List<Application.DTOs.OrderedProductIngredientDto>()
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
                 }
             }
         };
@@ -343,7 +345,7 @@ public class OrderControllerTests
             .ReturnsAsync(orderDto);
 
         _orderDataSourceMock
-            .Setup(x => x.UpdateAsync(It.IsAny<Application.DTOs.OrderDto>()))
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -351,7 +353,7 @@ public class OrderControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<ConfirmOrderSelectionResponse>>(okResult.Value);
+        var apiResponse = Assert.IsType<ApiResponse<ConfirmOrderSelectionResponse>>(okResult.Value);
         Assert.True(apiResponse.Success);
         Assert.NotNull(apiResponse.Content);
         var response = Assert.IsType<ConfirmOrderSelectionResponse>(apiResponse.Content);
