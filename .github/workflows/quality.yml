@@ -16,7 +16,6 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
@@ -37,19 +36,26 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
             echo "=== Configuring SonarCloud for Pull Request ==="
-            echo "PR Number: ${{ github.event.pull_request.number }}"
-            echo "Head Ref: ${{ github.head_ref }}"
-            echo "Base Ref: ${{ github.base_ref }}"
-            echo "PR Branch: ${{ github.event.pull_request.head.ref }}"
-            echo "Base Branch: ${{ github.event.pull_request.base.ref }}"
-            echo "Repository: ${{ github.repository }}"
+            echo "PR Number: $PR_NUMBER"
+            echo "Head Ref: $GITHUB_HEAD_REF"
+            echo "Base Ref: $GITHUB_BASE_REF"
+            echo "PR Branch: $PR_HEAD_REF"
+            echo "Base Branch: $PR_BASE_REF"
+            echo "Repository: $GITHUB_REPOSITORY"
             echo ""
             echo "=== Checking for code changes ==="
-            BASE_REF="${{ github.event.pull_request.base.ref }}"
-            HEAD_REF="${{ github.event.pull_request.head.ref }}"
+            BASE_REF="$PR_BASE_REF"
+            HEAD_REF="$PR_HEAD_REF"
             echo "Fetching base branch: $BASE_REF"
             git fetch origin "$BASE_REF" || echo "Could not fetch base branch"
             echo "Changed files:"
@@ -65,10 +71,10 @@ jobs:
               /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs" \
               /d:sonar.qualitygate.wait=true \
               /d:sonar.pullrequest.provider=github \
-              /d:sonar.pullrequest.github.repository="${{ github.repository }}" \
-              /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
-              /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
-              /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
+              /d:sonar.pullrequest.github.repository="$GITHUB_REPOSITORY" \
+              /d:sonar.pullrequest.key="$PR_NUMBER" \
+              /d:sonar.pullrequest.branch="$PR_HEAD_REF" \
+              /d:sonar.pullrequest.base="$PR_BASE_REF"
           else
             echo "=== Configuring SonarCloud for Branch Analysis ==="
             dotnet-sonarscanner begin \
