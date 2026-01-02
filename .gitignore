@@ -71,3 +71,6 @@ nunit-*.xml
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# Development configuration files (not versioned)
+**/appsettings.Development.json
