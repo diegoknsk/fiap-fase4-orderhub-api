@@ -227,7 +227,7 @@ jobs:
           echo "Extracting coverage data from OpenCover XML..."
           
           # Use Python to parse XML and calculate coverage (more reliable than grep/awk)
-          python3 << 'EOF'
+          python3 << EOF
           import xml.etree.ElementTree as ET
           import sys
           
@@ -251,26 +251,37 @@ jobs:
                   sys.exit(1)
               
               coverage_percentage = (visited_sequence_points / total_sequence_points) * 100
+              min_coverage = float(${MIN_COVERAGE})
               
-              print(f"Total sequence points: {total_sequence_points}")
-              print(f"Visited sequence points: {visited_sequence_points}")
+              print("")
+              print("==========================================")
+              print("📊 CODE COVERAGE REPORT")
+              print("==========================================")
+              print(f"Total sequence points: {total_sequence_points:,}")
+              print(f"Visited sequence points: {visited_sequence_points:,}")
               print(f"Coverage: {coverage_percentage:.2f}%")
-              print(f"Minimum required: {sys.argv[1]}%")
+              print(f"Minimum required: {min_coverage:.0f}%")
+              print("==========================================")
+              print("")
               
-              if coverage_percentage < float(sys.argv[1]):
-                  print(f"✗ FAIL: Coverage {coverage_percentage:.2f}% is below minimum {sys.argv[1]}%")
+              if coverage_percentage < min_coverage:
+                  print(f"❌ FAIL: Coverage {coverage_percentage:.2f}% is below minimum {min_coverage:.0f}%")
+                  print("Please add more tests to increase coverage before merging.")
                   sys.exit(1)
               else:
-                  print(f"✓ PASS: Coverage {coverage_percentage:.2f}% meets minimum {sys.argv[1]}%")
+                  print(f"✅ PASS: Coverage {coverage_percentage:.2f}% meets minimum {min_coverage:.0f}%")
                   sys.exit(0)
                   
           except Exception as e:
               print(f"✗ Error parsing coverage file: {e}")
+              import traceback
+              traceback.print_exc()
               sys.exit(1)
           EOF
-          $MIN_COVERAGE
           
-          if [ $? -ne 0 ]; then
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -ne 0 ]; then
             echo ""
             echo "=========================================="
             echo "❌ COVERAGE CHECK FAILED"
