@@ -42,12 +42,13 @@ jobs:
           /d:sonar.token="$SONAR_TOKEN"
           /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
           /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
+          /d:sonar.scanner.scanAll=false
 
       - name: Restore
         run: dotnet restore FastFood.OrderHub.sln
 
       - name: Build
-        run: dotnet build FastFood.OrderHub.sln -c Release --no-restore
+        run: dotnet build FastFood.OrderHub.sln -c Release --no-restore /p:DebugType=portable /p:DebugSymbols=true
 
       - name: Test (Unit + BDD) with coverage
         run: >
@@ -56,6 +57,17 @@ jobs:
           /p:CollectCoverage=true
           /p:CoverletOutputFormat="opencover"
           /p:CoverletOutput=./TestResults/coverage/
+
+      - name: List coverage files
+        run: |
+          echo "=== Coverage files generated ==="
+          find . -name "coverage.opencover.xml" -type f || echo "No coverage files found"
+          echo ""
+          echo "=== TestResults directory structure ==="
+          ls -la TestResults/ || echo "TestResults directory not found"
+          echo ""
+          echo "=== TestResults/coverage directory structure ==="
+          ls -la TestResults/coverage/ || echo "TestResults/coverage directory not found"
 
       - name: Sonar - End
         env:
