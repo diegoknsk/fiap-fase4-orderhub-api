@@ -44,7 +44,7 @@ public class OrderController : ControllerBase
     /// Listar pedidos paginados
     /// </summary>
     [HttpGet]
-    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
+    //[Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<GetPagedOrdersResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? status = null)
     {
@@ -81,7 +81,7 @@ public class OrderController : ControllerBase
     /// Iniciar novo pedido
     /// </summary>
     /// 
-    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
+    //[Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpPost("start")]
     [ProducesResponseType(typeof(ApiResponse<StartOrderResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<StartOrderResponse>), StatusCodes.Status400BadRequest)]
