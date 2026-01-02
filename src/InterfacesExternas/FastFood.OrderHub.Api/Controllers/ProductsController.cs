@@ -43,7 +43,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? category = null, [FromQuery] string? name = null)
     {
         //teste
-        var input = new GetProductsPagedInputModel
+        var inputPaged = new GetProductsPagedInputModel
         {
             Page = page,
             PageSize = pageSize,
@@ -51,7 +51,7 @@ public class ProductsController : ControllerBase
             Name = name
         };
 
-        var response = await _getProductsPagedUseCase.ExecuteAsync(input);
+        var response = await _getProductsPagedUseCase.ExecuteAsync(inputPaged);
         return Ok(ApiResponse<GetProductsPagedResponse>.Ok(response));
     }
 
