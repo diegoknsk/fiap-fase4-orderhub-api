@@ -1,0 +1,56 @@
+# Arquivos de configuração sensíveis
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/.env
+**/.env.local
+
+# Arquivos de build e cache
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+
+# Arquivos de teste
+**/TestResults/
+**/coverage/
+**/*.trx
+**/*.coverage
+
+# Arquivos temporários
+**/.tmp/
+**/.temp/
+**/*.tmp
+**/*.log
+
+# Arquivos do Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentação
+**/docs/
+**/*.md
+!README.md
+
+# Arquivos de CI/CD
+.github/
+**/.github/
+
+# Arquivos de IDE
+**/.editorconfig
+**/.dockerignore
+
+# Arquivos de migração (serão copiados explicitamente se necessário)
+# **/Migrations/
+
+# Arquivos de secrets e certificados
+**/*.pem
+**/*.key
+**/*.crt
+**/*.pfx
+**/secrets/
+
+# Arquivos de backup
+**/*.bak
+**/*.backup
