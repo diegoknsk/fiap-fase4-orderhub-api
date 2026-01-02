@@ -38,6 +38,20 @@ O workflow deve:
 - **Organization**: `diegoknsk` (ajustar conforme necessário)
 - **Token**: Usar secret `SONAR_TOKEN`
 
+### ⚠️ IMPORTANTE: Desabilitar Análise Automática no SonarCloud
+
+**Erro comum**: `ERROR: You are running CI analysis while Automatic Analysis is enabled.`
+
+Para resolver este erro, é necessário **desabilitar a Análise Automática** no SonarCloud:
+
+1. Acesse o SonarCloud: https://sonarcloud.io
+2. Navegue até o projeto `diegoknsk_fiap-fase4-orderhub-api`
+3. Vá em **Administration** → **Analysis Method**
+4. Na seção **Automatic Analysis**, desative essa opção
+5. Salve as alterações
+
+Isso permitirá que a análise seja realizada exclusivamente pelo pipeline de CI/CD, evitando conflitos.
+
 ## Como testar
 - Criar um PR e verificar que o workflow é acionado
 - Verificar que os testes são executados
