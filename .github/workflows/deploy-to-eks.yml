@@ -1,6 +1,13 @@
 name: Deploy OrderHub Application
 
 on:
+  workflow_run:
+    workflows: ["PR - Build, Test, Sonar"]
+    types:
+      - completed
+    branches:
+      - main
+  # Security: Only allow workflow_run from main branch to prevent execution of untrusted code from forks
   workflow_dispatch:
     inputs:
       skip_migrator:
@@ -18,7 +25,20 @@ env:
   ECR_REPOSITORY: fiap-fase4-infra-orderhub-api
 
 jobs:
+  check-quality:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Check Quality Gate
+        run: |
+          echo "✅ Quality Gate passed - proceeding with deployment"
+          echo "Workflow run: ${{ github.event.workflow_run.id }}"
+          echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+
   deploy:
+    needs: check-quality
+    # Security: Only deploy if workflow_run is from the same repository and main branch, or manual trigger
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     
     outputs:
@@ -28,10 +48,15 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      with:
+        # Security: Only checkout from main branch to prevent execution of untrusted code from forks
+        # workflow_run events are only triggered for main branch (see branches filter on line 8-9)
+        # workflow_dispatch uses github.ref which is safe for manual triggers
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'main' }}
     
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -40,7 +65,7 @@ jobs:
     
     - name: Login to Amazon ECR
       id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2
     
     - name: Set TAG and image names
       id: set-tag
@@ -58,10 +83,10 @@ jobs:
         echo "Migrator Image: ${MIGRATOR_IMAGE}"
     
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
     
     - name: Build and push API image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
       with:
         context: .
         file: ./src/InterfacesExternas/FastFood.OrderHub.Api/Dockerfile
@@ -74,7 +99,7 @@ jobs:
     
     - name: Build and push Migrator image
       if: ${{ !github.event.inputs.skip_migrator }}
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
       with:
         context: .
         file: ./src/InterfacesExternas/FastFood.OrderHub.Migrator/Dockerfile
