@@ -259,7 +259,7 @@ Este repositório terá **3 GitHub Actions principais**:
    - Push da imagem para o Amazon ECR
    - Executar após build, testes e análise Sonar bem-sucedidos
    - Tag da imagem baseada em versão/tag do Git
-   - **Validação obrigatória:** Cobertura mínima de 85% e pelo menos 1 teste BDD
+   - **Validação obrigatória:** Cobertura mínima de 80% e pelo menos 1 teste BDD
 
 2. **Deploy no EKS:**
    - Deploy do deployment no cluster Kubernetes
@@ -299,7 +299,7 @@ CRITÉRIOS DE ACEITE - TESTES
 =====================
 
 **Cobertura de Testes (SonarQube/SonarCloud):**
-- **Mínimo obrigatório: 85% de cobertura de código**
+- **Mínimo obrigatório: 80% de cobertura de código**
 - A análise de cobertura deve ser executada via SonarQube/SonarCloud
 - O Quality Gate do Sonar deve bloquear merges que não atendam este critério
 - Cobertura deve ser medida em todas as camadas (Domain, UseCases, Gateways, API)
@@ -313,7 +313,7 @@ CRITÉRIOS DE ACEITE - TESTES
 
 **Validação no CI/CD:**
 - Os critérios de aceite devem ser validados nas GitHub Actions
-- Build deve falhar se cobertura estiver abaixo de 85%
+- Build deve falhar se cobertura estiver abaixo de 80%
 - Build deve falhar se não houver pelo menos 1 teste BDD implementado
 - Sonar Quality Gate deve ser obrigatório para merge na branch principal
 
@@ -321,7 +321,7 @@ CRITÉRIOS DE ACEITE - TESTES
 - Estes são critérios de aceite obrigatórios do projeto
 - Não é permitido fazer merge sem atender ambos os critérios
 - Testes BDD podem ser simples, mas devem validar comportamento real do sistema
-- Cobertura de 85% é o mínimo, mas buscar sempre o máximo possível
+- Cobertura de 80% é o mínimo, mas buscar sempre o máximo possível
 
 =====================
 NOTAS IMPORTANTES

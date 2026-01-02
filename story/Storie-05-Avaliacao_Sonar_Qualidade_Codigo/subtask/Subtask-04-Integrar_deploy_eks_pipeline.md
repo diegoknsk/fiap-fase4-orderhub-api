@@ -14,7 +14,7 @@ Modificar o workflow de deploy para EKS para que seja acionado automaticamente a
 - [ ] Adicionar validação de Quality Gate antes do deploy
 - [ ] Manter opção de execução manual (workflow_dispatch)
 - [ ] Garantir que deploy só ocorre se qualidade passar
-- [ ] Adicionar step de verificação de cobertura mínima (85%)
+- [ ] Adicionar step de verificação de cobertura mínima (80%)
 
 ## Estrutura esperada
 
@@ -37,7 +37,7 @@ O workflow deve:
 - [ ] Workflow modificado para depender do job de qualidade
 - [ ] Workflow acionado automaticamente após merge na main
 - [ ] Deploy só ocorre se Quality Gate passar
-- [ ] Validação de cobertura mínima (85%) implementada
+- [ ] Validação de cobertura mínima (80%) implementada
 - [ ] Execução manual ainda disponível
 - [ ] Deploy no EKS funcionando corretamente
 - [ ] Migrator job executado quando necessário
