@@ -40,7 +40,7 @@ jobs:
           /k:"diegoknsk_fiap-fase4-orderhub-api"
           /o:"diegoknsk"
           /d:sonar.token="$SONAR_TOKEN"
-          /d:sonar.cs.opencover.reportsPaths="TestResults/coverage/coverage.opencover.xml"
+          /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage/coverage.opencover.xml"
           /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
           /d:sonar.scanner.scanAll=false
           /d:sonar.projectBaseDir="${{ github.workspace }}"
