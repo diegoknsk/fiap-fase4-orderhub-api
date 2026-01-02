@@ -10,29 +10,103 @@ class Program
     static async Task Main(string[] args)
     {
         Console.WriteLine("Iniciando migração do DynamoDB...");
+        Console.WriteLine("==========================================");
+
+        // Verificar variáveis de ambiente brutas
+        Console.WriteLine("\n[DEBUG] Verificando variáveis de ambiente brutas:");
+        var envAccessKey = Environment.GetEnvironmentVariable("DynamoDb__AccessKey");
+        var envSecretKey = Environment.GetEnvironmentVariable("DynamoDb__SecretKey");
+        var envSessionToken = Environment.GetEnvironmentVariable("DynamoDb__SessionToken");
+        var envRegion = Environment.GetEnvironmentVariable("DynamoDb__Region");
+        var envServiceUrl = Environment.GetEnvironmentVariable("DynamoDb__ServiceUrl");
+        
+        Console.WriteLine($"  DynamoDb__AccessKey presente: {!string.IsNullOrEmpty(envAccessKey)} (tamanho: {envAccessKey?.Length ?? 0})");
+        Console.WriteLine($"  DynamoDb__SecretKey presente: {!string.IsNullOrEmpty(envSecretKey)} (tamanho: {envSecretKey?.Length ?? 0})");
+        Console.WriteLine($"  DynamoDb__SessionToken presente: {!string.IsNullOrEmpty(envSessionToken)} (tamanho: {envSessionToken?.Length ?? 0})");
+        Console.WriteLine($"  DynamoDb__Region: {envRegion ?? "não definido"}");
+        Console.WriteLine($"  DynamoDb__ServiceUrl: {envServiceUrl ?? "não definido"}");
 
         // Configurar DynamoDB client
+        Console.WriteLine("\n[DEBUG] Carregando configuração...");
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables() // Converte DynamoDb__AccessKey para DynamoDb:AccessKey automaticamente
             .Build();
 
-        var dynamoDbConfig = configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>() 
-            ?? new DynamoDbConfiguration
-            {
-                AccessKey = configuration["DynamoDb:AccessKey"] ?? Environment.GetEnvironmentVariable("DYNAMODB__ACCESSKEY") ?? string.Empty,
-                SecretKey = configuration["DynamoDb:SecretKey"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SECRETKEY") ?? string.Empty,
-                SessionToken = configuration["DynamoDb:SessionToken"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SESSIONTOKEN"),
-                Region = configuration["DynamoDb:Region"] ?? Environment.GetEnvironmentVariable("DYNAMODB__REGION") ?? "us-east-1",
-                ServiceUrl = configuration["DynamoDb:ServiceUrl"] ?? Environment.GetEnvironmentVariable("DYNAMODB__SERVICEURL")
-            };
+        // Verificar valores lidos pela configuração
+        Console.WriteLine("\n[DEBUG] Valores lidos pela Configuration:");
+        Console.WriteLine($"  DynamoDb:AccessKey: {(!string.IsNullOrEmpty(configuration["DynamoDb:AccessKey"]) ? "presente" : "ausente")} (tamanho: {configuration["DynamoDb:AccessKey"]?.Length ?? 0})");
+        Console.WriteLine($"  DynamoDb:SecretKey: {(!string.IsNullOrEmpty(configuration["DynamoDb:SecretKey"]) ? "presente" : "ausente")} (tamanho: {configuration["DynamoDb:SecretKey"]?.Length ?? 0})");
+        Console.WriteLine($"  DynamoDb:SessionToken: {(!string.IsNullOrEmpty(configuration["DynamoDb:SessionToken"]) ? "presente" : "ausente")} (tamanho: {configuration["DynamoDb:SessionToken"]?.Length ?? 0})");
+        Console.WriteLine($"  DynamoDb:Region: {configuration["DynamoDb:Region"] ?? "não definido"}");
+        Console.WriteLine($"  DynamoDb:ServiceUrl: {configuration["DynamoDb:ServiceUrl"] ?? "não definido"}");
 
+        var dynamoDbConfig = configuration.GetSection("DynamoDb").Get<DynamoDbConfiguration>();
+        
+        if (dynamoDbConfig == null)
+        {
+            Console.WriteLine("\n[ERRO] Configuração do DynamoDB não encontrada após GetSection!");
+            Environment.Exit(1);
+        }
+
+        // Validar credenciais
+        Console.WriteLine("\n[DEBUG] Validando configuração carregada:");
+        Console.WriteLine($"  AccessKey vazia: {string.IsNullOrWhiteSpace(dynamoDbConfig.AccessKey)}");
+        Console.WriteLine($"  SecretKey vazia: {string.IsNullOrWhiteSpace(dynamoDbConfig.SecretKey)}");
+        Console.WriteLine($"  Region: {dynamoDbConfig.Region ?? "não definido"}");
+        Console.WriteLine($"  ServiceUrl: {dynamoDbConfig.ServiceUrl ?? "não definido"}");
+        Console.WriteLine($"  SessionToken presente: {!string.IsNullOrWhiteSpace(dynamoDbConfig.SessionToken)}");
+        
+        if (string.IsNullOrWhiteSpace(dynamoDbConfig.AccessKey) || string.IsNullOrWhiteSpace(dynamoDbConfig.SecretKey))
+        {
+            Console.WriteLine("\n[ERRO] AccessKey ou SecretKey do DynamoDB não configurados!");
+            Console.WriteLine($"  AccessKey: '{dynamoDbConfig.AccessKey ?? "null"}'");
+            Console.WriteLine($"  SecretKey: '{dynamoDbConfig.SecretKey ?? "null"}'");
+            Environment.Exit(1);
+        }
+
+        Console.WriteLine("\n[INFO] Configuração do DynamoDB carregada com sucesso:");
+        Console.WriteLine($"  Region: {dynamoDbConfig.Region}");
+        Console.WriteLine($"  AccessKey: {dynamoDbConfig.AccessKey.Substring(0, Math.Min(10, dynamoDbConfig.AccessKey.Length))}... (tamanho: {dynamoDbConfig.AccessKey.Length})");
+        Console.WriteLine($"  SecretKey: *** (tamanho: {dynamoDbConfig.SecretKey.Length})");
+        if (!string.IsNullOrWhiteSpace(dynamoDbConfig.SessionToken))
+        {
+            Console.WriteLine($"  SessionToken: {dynamoDbConfig.SessionToken.Substring(0, Math.Min(20, dynamoDbConfig.SessionToken.Length))}... (tamanho: {dynamoDbConfig.SessionToken.Length})");
+        }
+        else
+        {
+            Console.WriteLine($"  SessionToken: não fornecido (usando BasicAWSCredentials)");
+        }
+
+        Console.WriteLine("\n[DEBUG] Criando cliente DynamoDB...");
         var client = dynamoDbConfig.CreateDynamoDbClient();
+        Console.WriteLine("[DEBUG] Cliente DynamoDB criado com sucesso.");
 
         try
         {
+            // Testar conexão e autenticação
+            Console.WriteLine("\n[DEBUG] Testando conexão com DynamoDB...");
+            try
+            {
+                var listTablesRequest = new ListTablesRequest { Limit = 1 };
+                var listTablesResponse = await client.ListTablesAsync(listTablesRequest);
+                Console.WriteLine($"[DEBUG] Conexão com DynamoDB bem-sucedida! Total de tabelas: {listTablesResponse.TableNames.Count}");
+            }
+            catch (Exception authEx)
+            {
+                Console.WriteLine("\n[ERRO] Falha ao testar conexão/autenticação com DynamoDB:");
+                Console.WriteLine($"  Mensagem: {authEx.Message}");
+                Console.WriteLine($"  Tipo: {authEx.GetType().Name}");
+                if (authEx.InnerException != null)
+                {
+                    Console.WriteLine($"  Inner Exception: {authEx.InnerException.Message}");
+                }
+                throw; // Re-lançar para ser capturado pelo catch externo
+            }
+
             // Criar tabelas
+            Console.WriteLine("\n[INFO] Iniciando criação/verificação de tabelas...");
             await CreateProductTableAsync(client);
             await CreateOrderTableAsync(client);
 
@@ -43,7 +117,18 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro durante a migração: {ex.Message}");
+            Console.WriteLine("\n==========================================");
+            Console.WriteLine("[ERRO] Erro durante a migração:");
+            Console.WriteLine($"  Mensagem: {ex.Message}");
+            Console.WriteLine($"  Tipo: {ex.GetType().Name}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  Inner Exception: {ex.InnerException.Message}");
+                Console.WriteLine($"  Inner Exception Tipo: {ex.InnerException.GetType().Name}");
+            }
+            Console.WriteLine($"\n[DEBUG] Stack Trace:");
+            Console.WriteLine(ex.StackTrace);
+            Console.WriteLine("==========================================");
             Environment.Exit(1);
         }
     }

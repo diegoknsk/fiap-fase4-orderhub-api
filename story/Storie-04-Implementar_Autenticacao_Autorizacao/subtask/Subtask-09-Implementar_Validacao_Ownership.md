@@ -158,3 +158,4 @@ public async Task<IActionResult> ConfirmSelection(Guid id)
    - Considerar cache se necessário (futuro)
 
 
+

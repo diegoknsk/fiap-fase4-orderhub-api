@@ -61,3 +61,4 @@ public async Task<IActionResult> Delete(Guid id)
    - Chamar endpoint com token Cognito válido → Deve retornar 200/201 conforme esperado
 
 
+

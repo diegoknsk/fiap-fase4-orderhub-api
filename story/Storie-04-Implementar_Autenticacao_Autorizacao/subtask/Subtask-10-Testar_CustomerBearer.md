@@ -92,3 +92,4 @@ curl -X GET http://orderhub-url/api/products \
 - [ ] Assinatura do token é validada corretamente
 
 
+

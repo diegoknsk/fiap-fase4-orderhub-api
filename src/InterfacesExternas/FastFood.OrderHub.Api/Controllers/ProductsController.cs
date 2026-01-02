@@ -57,6 +57,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Obter produto por ID
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<GetProductByIdResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<GetProductByIdResponse>), StatusCodes.Status404NotFound)]
@@ -74,6 +75,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Criar produto
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<CreateProductResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<CreateProductResponse>), StatusCodes.Status400BadRequest)]
@@ -93,6 +95,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Atualizar produto
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<UpdateProductResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<UpdateProductResponse>), StatusCodes.Status404NotFound)]
@@ -118,6 +121,7 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Remover produto
     /// </summary>
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(ApiResponse<DeleteProductResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<DeleteProductResponse>), StatusCodes.Status404NotFound)]
