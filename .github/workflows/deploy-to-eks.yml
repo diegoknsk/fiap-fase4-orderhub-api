@@ -48,21 +48,28 @@ jobs:
     
     steps:
     - name: Verify repository security
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        WORKFLOW_RUN_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+        WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        CURRENT_REPO: ${{ github.repository }}
+        REPO_OWNER: ${{ github.repository_owner }}
       run: |
         # Security check: Ensure we're not running from a fork
-        if [ "${{ github.event_name }}" == "workflow_run" ]; then
-          if [ "${{ github.event.workflow_run.head_repository.full_name }}" != "${{ github.repository }}" ]; then
+        # Using environment variables instead of direct interpolation to prevent code injection
+        if [ "$EVENT_NAME" == "workflow_run" ]; then
+          if [ "$WORKFLOW_RUN_REPO" != "$CURRENT_REPO" ]; then
             echo "❌ Security: Cannot deploy from fork repository"
             exit 1
           fi
-          if [ "${{ github.event.workflow_run.head_branch }}" != "main" ]; then
+          if [ "$WORKFLOW_RUN_BRANCH" != "main" ]; then
             echo "❌ Security: Can only deploy from main branch"
             exit 1
           fi
           echo "✅ Security: workflow_run is from same repository and main branch"
-        elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+        elif [ "$EVENT_NAME" == "workflow_dispatch" ]; then
           # For manual triggers, verify we're in the same repository
-          if [ -z "${{ github.repository_owner }}" ]; then
+          if [ -z "$REPO_OWNER" ]; then
             echo "❌ Security: Cannot determine repository owner"
             exit 1
           fi
