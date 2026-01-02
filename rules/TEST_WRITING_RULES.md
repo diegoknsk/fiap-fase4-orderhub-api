@@ -11,8 +11,9 @@ Este documento define as regras e padrões para escrita de testes que devem ser 
 5. [Testes de Integração](#testes-de-integração)
 6. [Testes BDD](#testes-bdd)
 7. [Cobertura de Testes](#cobertura-de-testes)
-8. [Boas Práticas](#boas-práticas)
-9. [Anti-padrões](#anti-padrões)
+8. [Integração com SonarCloud](#integração-com-sonarcloud)
+9. [Boas Práticas](#boas-práticas)
+10. [Anti-padrões](#anti-padrões)
 
 ---
 
@@ -377,6 +378,287 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
 ---
 
+## Integração com SonarCloud
+
+### Configuração do Projeto de Teste
+
+Para que a cobertura seja coletada corretamente e enviada ao SonarCloud, o projeto de teste deve incluir os pacotes Coverlet:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="coverlet.collector" Version="6.0.0" />
+  <PackageReference Include="coverlet.msbuild" Version="6.0.0">
+    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PrivateAssets>all</PrivateAssets>
+  </PackageReference>
+</ItemGroup>
+```
+
+### Configuração do Workflow GitHub Actions
+
+#### 1. Build com Símbolos de Debug
+
+**CRÍTICO**: O build deve gerar arquivos `.pdb` (símbolos de debug) para que o SonarCloud possa processar a cobertura corretamente:
+
+```yaml
+- name: Build
+  run: dotnet build FastFood.OrderHub.sln -c Release --no-restore /p:DebugType=portable /p:DebugSymbols=true
+```
+
+**Por quê?**: Os arquivos `.pdb` são essenciais para mapear o código coberto de volta ao código-fonte original.
+
+#### 2. Execução de Testes com Cobertura
+
+Configure os testes para gerar cobertura no formato OpenCover:
+
+```yaml
+- name: Test (Unit + BDD) with coverage
+  run: >
+    dotnet test FastFood.OrderHub.sln -c Release --no-build
+    --logger "trx;LogFileName=test_results.trx"
+    /p:CollectCoverage=true
+    /p:CoverletOutputFormat="opencover"
+    /p:CoverletOutput="./TestResults/coverage/"
+```
+
+**Importante**: 
+- Use `CoverletOutputFormat="opencover"` (formato suportado pelo SonarCloud)
+- O `CoverletOutput` deve apontar para um diretório relativo à raiz do projeto
+
+#### 3. Consolidação de Arquivos de Cobertura
+
+**PROBLEMA COMUM**: O Coverlet gera arquivos de cobertura dentro de cada projeto de teste (ex: `./src/tests/Projeto.Tests/TestResults/coverage/coverage.opencover.xml`), mas o SonarCloud precisa encontrar o arquivo em um local conhecido.
+
+**Solução**: Consolide os arquivos de cobertura em um único local:
+
+```yaml
+- name: Consolidate coverage reports
+  run: |
+    mkdir -p ./TestResults/coverage
+    # Find all coverage files and copy the first one (or merge if needed)
+    COVERAGE_FILES=$(find . -path "*/TestResults/*/coverage.opencover.xml" -type f)
+    if [ -n "$COVERAGE_FILES" ]; then
+      FIRST_FILE=$(echo "$COVERAGE_FILES" | head -n 1)
+      cp "$FIRST_FILE" ./TestResults/coverage/coverage.opencover.xml
+      echo "=== Coverage file consolidated ==="
+      ls -la ./TestResults/coverage/
+    else
+      echo "No coverage files found to consolidate"
+    fi
+```
+
+**Nota**: Se houver múltiplos projetos de teste, considere usar uma ferramenta de merge para consolidar todos os arquivos em um único relatório.
+
+#### 4. Configuração do SonarScanner Begin
+
+Configure o SonarScanner com as propriedades corretas:
+
+```yaml
+- name: Sonar - Begin
+  env:
+    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  run: >
+    dotnet-sonarscanner begin
+    /k:"organizacao_projeto"
+    /o:"organizacao"
+    /d:sonar.token="$SONAR_TOKEN"
+    /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage/coverage.opencover.xml"
+    /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
+    /d:sonar.scanner.scanAll=false
+    /d:sonar.projectBaseDir="${{ github.workspace }}"
+```
+
+**Propriedades importantes**:
+
+- `sonar.cs.opencover.reportsPaths`: Use padrão `**/TestResults/coverage/coverage.opencover.xml` para encontrar o arquivo consolidado
+- `sonar.coverage.exclusions`: Exclua arquivos que não devem ser contabilizados na cobertura
+- `sonar.scanner.scanAll=false`: Desabilita análise multi-idioma (evita avisos e problemas)
+- `sonar.projectBaseDir`: Define o diretório base do projeto (ajuda na resolução de caminhos)
+
+#### 5. Verificação Antes do Sonar End
+
+Adicione um step de verificação para garantir que o arquivo de cobertura existe antes do Sonar End:
+
+```yaml
+- name: Verify coverage file before Sonar End
+  run: |
+    echo "=== Verifying coverage file ==="
+    if [ -f "./TestResults/coverage/coverage.opencover.xml" ]; then
+      echo "✓ Coverage file exists at ./TestResults/coverage/coverage.opencover.xml"
+      ls -lh ./TestResults/coverage/coverage.opencover.xml
+      echo "File size: $(du -h ./TestResults/coverage/coverage.opencover.xml | cut -f1)"
+    else
+      echo "✗ Coverage file NOT found at ./TestResults/coverage/coverage.opencover.xml"
+      echo "Searching for coverage files..."
+      find . -name "coverage.opencover.xml" -type f
+      exit 1
+    fi
+```
+
+### Configuração do SonarCloud
+
+#### ⚠️ CRÍTICO: Desabilitar Análise Automática
+
+**Erro comum**: `ERROR: You are running CI analysis while Automatic Analysis is enabled.`
+
+**Solução**: A Análise Automática deve ser desabilitada no SonarCloud para evitar conflitos com a análise via CI/CD:
+
+1. Acesse o SonarCloud: https://sonarcloud.io
+2. Navegue até o projeto
+3. Vá em **Administration** → **Analysis Method**
+4. Na seção **Automatic Analysis**, desative essa opção
+5. Salve as alterações
+
+**Por quê?**: A análise automática e a análise via CI/CD são mutuamente exclusivas. Se ambas estiverem ativas, o SonarCloud retornará erro.
+
+### Checklist de Configuração SonarCloud
+
+Antes de considerar a integração completa, verifique:
+
+- [ ] Pacotes Coverlet instalados no projeto de teste (`coverlet.collector` e `coverlet.msbuild`)
+- [ ] Build configurado com `/p:DebugType=portable /p:DebugSymbols=true`
+- [ ] Testes executados com `/p:CollectCoverage=true /p:CoverletOutputFormat="opencover"`
+- [ ] Step de consolidação de cobertura configurado
+- [ ] `sonar.cs.opencover.reportsPaths` apontando para o arquivo consolidado
+- [ ] `sonar.scanner.scanAll=false` configurado
+- [ ] `sonar.projectBaseDir` configurado
+- [ ] Step de verificação antes do Sonar End
+- [ ] Análise Automática desabilitada no SonarCloud
+- [ ] Secret `SONAR_TOKEN` configurado no GitHub
+
+### Troubleshooting
+
+#### Problema: Cobertura não aparece no SonarCloud
+
+**Verificações**:
+
+1. **Arquivo de cobertura existe?**
+   - Verifique o step "List coverage files" ou "Verify coverage file"
+   - Confirme que o arquivo foi consolidado em `./TestResults/coverage/coverage.opencover.xml`
+
+2. **Caminho está correto?**
+   - Verifique se `sonar.cs.opencover.reportsPaths` está usando o padrão correto
+   - Use `**/TestResults/coverage/coverage.opencover.xml` para busca recursiva
+
+3. **Símbolos de debug foram gerados?**
+   - Confirme que o build inclui `/p:DebugType=portable /p:DebugSymbols=true`
+   - Verifique se arquivos `.pdb` foram gerados junto com os `.dll`
+
+4. **Análise Automática está desabilitada?**
+   - Verifique em SonarCloud → Administration → Analysis Method
+   - Certifique-se de que a Análise Automática está desativada
+
+5. **Formato do arquivo está correto?**
+   - O arquivo deve estar em formato OpenCover (`.opencover.xml`)
+   - Verifique se o arquivo não está vazio ou corrompido
+
+#### Problema: Erro "You are running CI analysis while Automatic Analysis is enabled"
+
+**Solução**: Desabilite a Análise Automática no SonarCloud (veja seção acima).
+
+#### Problema: Arquivo de cobertura não encontrado
+
+**Solução**: 
+- Verifique onde o Coverlet está gerando os arquivos (geralmente dentro de cada projeto de teste)
+- Ajuste o step de consolidação para encontrar e copiar os arquivos corretamente
+- Use `find . -name "coverage.opencover.xml"` para localizar todos os arquivos gerados
+
+### Exemplo Completo de Workflow
+
+```yaml
+name: PR - Build, Test, Sonar
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ "main" ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Cache Sonar
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Install SonarScanner for .NET
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Sonar - Begin
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >
+          dotnet-sonarscanner begin
+          /k:"organizacao_projeto"
+          /o:"organizacao"
+          /d:sonar.token="$SONAR_TOKEN"
+          /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage/coverage.opencover.xml"
+          /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
+          /d:sonar.scanner.scanAll=false
+          /d:sonar.projectBaseDir="${{ github.workspace }}"
+
+      - name: Restore
+        run: dotnet restore Projeto.sln
+
+      - name: Build
+        run: dotnet build Projeto.sln -c Release --no-restore /p:DebugType=portable /p:DebugSymbols=true
+
+      - name: Test with coverage
+        run: >
+          dotnet test Projeto.sln -c Release --no-build
+          --logger "trx;LogFileName=test_results.trx"
+          /p:CollectCoverage=true
+          /p:CoverletOutputFormat="opencover"
+          /p:CoverletOutput="./TestResults/coverage/"
+
+      - name: Consolidate coverage reports
+        run: |
+          mkdir -p ./TestResults/coverage
+          COVERAGE_FILES=$(find . -path "*/TestResults/*/coverage.opencover.xml" -type f)
+          if [ -n "$COVERAGE_FILES" ]; then
+            FIRST_FILE=$(echo "$COVERAGE_FILES" | head -n 1)
+            cp "$FIRST_FILE" ./TestResults/coverage/coverage.opencover.xml
+            echo "=== Coverage file consolidated ==="
+            ls -la ./TestResults/coverage/
+          else
+            echo "No coverage files found to consolidate"
+          fi
+
+      - name: Verify coverage file before Sonar End
+        run: |
+          if [ -f "./TestResults/coverage/coverage.opencover.xml" ]; then
+            echo "✓ Coverage file exists"
+            ls -lh ./TestResults/coverage/coverage.opencover.xml
+          else
+            echo "✗ Coverage file NOT found"
+            find . -name "coverage.opencover.xml" -type f
+            exit 1
+          fi
+
+      - name: Sonar - End
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+```
+
+---
+
 ## Boas Práticas
 
 ### 1. Use Test Data Builders
@@ -615,3 +897,5 @@ Antes de considerar um teste completo, verifique:
 ---
 
 **Última atualização**: Janeiro 2025
+
+**Nota**: Esta documentação inclui todas as boas práticas validadas para integração com SonarCloud, incluindo configuração de cobertura, consolidação de relatórios, e resolução de problemas comuns.

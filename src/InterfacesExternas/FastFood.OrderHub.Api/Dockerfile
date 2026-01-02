@@ -28,6 +28,10 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
+# Segurança: Rodar como não-root
+RUN chown -R 1001:1001 /app
+USER 1001:1001
+
 ENV ASPNETCORE_URLS=http://+:80
 
 EXPOSE 80

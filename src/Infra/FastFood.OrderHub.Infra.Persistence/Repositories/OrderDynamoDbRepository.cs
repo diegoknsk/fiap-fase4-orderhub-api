@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using FastFood.OrderHub.Application.DTOs;
@@ -299,7 +300,8 @@ public class OrderDynamoDbRepository
         do
         {
             var datePart = DateTime.UtcNow.ToString("yyyyMMdd");
-            var randomPart = new Random().Next(1000, 9999).ToString();
+            // Usar RandomNumberGenerator ao invés de Random para segurança
+            var randomPart = GenerateSecureRandomNumber(1000, 9999).ToString();
             code = $"ORD{datePart}{randomPart}";
             attempts++;
 
@@ -308,6 +310,23 @@ public class OrderDynamoDbRepository
         } while (await ExistsByCodeAsync(code));
 
         return code;
+    }
+
+    /// <summary>
+    /// Gera número aleatório seguro usando RandomNumberGenerator
+    /// </summary>
+    private static int GenerateSecureRandomNumber(int minValue, int maxValue)
+    {
+        if (minValue >= maxValue)
+            throw new ArgumentException("minValue deve ser menor que maxValue", nameof(minValue));
+
+        using var rng = RandomNumberGenerator.Create();
+        var bytes = new byte[4];
+        rng.GetBytes(bytes);
+        var randomValue = BitConverter.ToUInt32(bytes, 0);
+        
+        // Normalizar para o range desejado
+        return (int)(minValue + (randomValue % (maxValue - minValue)));
     }
 
     /// <summary>
