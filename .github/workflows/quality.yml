@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
@@ -47,7 +48,15 @@ jobs:
             echo "Repository: ${{ github.repository }}"
             echo ""
             echo "=== Checking for code changes ==="
-            git diff --name-only ${{ github.event.pull_request.base.ref }}...${{ github.event.pull_request.head.ref }} | grep -E '\.(cs|csproj)$' || echo "No .cs or .csproj files changed"
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+            HEAD_REF="${{ github.event.pull_request.head.ref }}"
+            echo "Fetching base branch: $BASE_REF"
+            git fetch origin "$BASE_REF" || echo "Could not fetch base branch"
+            echo "Changed files:"
+            git diff --name-only "origin/$BASE_REF"...HEAD 2>/dev/null || git diff --name-only "$BASE_REF"...HEAD 2>/dev/null || echo "Could not determine changed files"
+            echo ""
+            echo "C# files changed:"
+            git diff --name-only "origin/$BASE_REF"...HEAD 2>/dev/null | grep -E '\.(cs|csproj)$' || git diff --name-only "$BASE_REF"...HEAD 2>/dev/null | grep -E '\.(cs|csproj)$' || echo "No .cs or .csproj files changed in this PR"
             dotnet-sonarscanner begin \
               /k:"diegoknsk_fiap-fase4-orderhub-api" \
               /o:"diegoknsk" \
