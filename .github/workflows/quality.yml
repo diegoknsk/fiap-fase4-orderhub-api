@@ -40,7 +40,7 @@ jobs:
           /k:"diegoknsk_fiap-fase4-orderhub-api"
           /o:"diegoknsk"
           /d:sonar.token="$SONAR_TOKEN"
-          /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
+          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
           /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
 
       - name: Restore
@@ -55,7 +55,7 @@ jobs:
           --logger "trx;LogFileName=test_results.trx"
           /p:CollectCoverage=true
           /p:CoverletOutputFormat="opencover"
-          /p:CoverletOutput=./TestResults/coverage/
+          /p:CoverletOutput="./TestResults/"
 
       - name: Sonar - End
         env:

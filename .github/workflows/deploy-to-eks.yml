@@ -48,7 +48,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       with:
-        ref: ${{ github.event.workflow_run.head_branch || github.ref }}
+        # Security: Only checkout from main branch to prevent execution of untrusted code from forks
+        # workflow_run events are only triggered for main branch (see branches filter on line 8-9)
+        # workflow_dispatch uses github.ref which is safe for manual triggers
+        ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'main' }}
     
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
