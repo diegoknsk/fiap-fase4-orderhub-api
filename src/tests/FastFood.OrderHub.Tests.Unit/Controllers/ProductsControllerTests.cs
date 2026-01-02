@@ -100,7 +100,10 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedResponse = Assert.IsType<GetProductsPagedResponse>(okResult.Value);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetProductsPagedResponse>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Content);
+        var returnedResponse = Assert.IsType<GetProductsPagedResponse>(apiResponse.Content);
         Assert.Single(returnedResponse.Items);
     }
 
@@ -134,7 +137,10 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedResponse = Assert.IsType<GetProductByIdResponse>(okResult.Value);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetProductByIdResponse>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Content);
+        var returnedResponse = Assert.IsType<GetProductByIdResponse>(apiResponse.Content);
         Assert.Equal(productId, returnedResponse.ProductId);
     }
 
@@ -152,7 +158,9 @@ public class ProductsControllerTests
         var result = await _controller.GetById(productId);
 
         // Assert
-        Assert.IsType<NotFoundResult>(result);
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<GetProductByIdResponse>>(notFoundResult.Value);
+        Assert.False(apiResponse.Success);
     }
 
     [Fact]
@@ -183,7 +191,10 @@ public class ProductsControllerTests
 
         // Assert
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
-        var returnedResponse = Assert.IsType<CreateProductResponse>(createdResult.Value);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<CreateProductResponse>>(createdResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Content);
+        var returnedResponse = Assert.IsType<CreateProductResponse>(apiResponse.Content);
         Assert.NotEqual(Guid.Empty, returnedResponse.ProductId);
         Assert.Equal(input.Name, returnedResponse.Name);
     }
@@ -251,7 +262,10 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedResponse = Assert.IsType<UpdateProductResponse>(okResult.Value);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<UpdateProductResponse>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Content);
+        var returnedResponse = Assert.IsType<UpdateProductResponse>(apiResponse.Content);
         Assert.Equal(productId, returnedResponse.ProductId);
         Assert.Equal(input.Name, returnedResponse.Name);
     }
@@ -277,7 +291,9 @@ public class ProductsControllerTests
         var result = await _controller.Update(productId, input);
 
         // Assert
-        Assert.IsType<NotFoundResult>(result);
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<UpdateProductResponse>>(notFoundResult.Value);
+        Assert.False(apiResponse.Success);
     }
 
     [Fact]
@@ -338,7 +354,10 @@ public class ProductsControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedResponse = Assert.IsType<DeleteProductResponse>(okResult.Value);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<DeleteProductResponse>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Content);
+        var returnedResponse = Assert.IsType<DeleteProductResponse>(apiResponse.Content);
         Assert.Equal(productId, returnedResponse.ProductId);
         Assert.True(returnedResponse.Success);
         
@@ -360,7 +379,9 @@ public class ProductsControllerTests
         var result = await _controller.Delete(productId);
 
         // Assert
-        Assert.IsType<NotFoundResult>(result);
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        var apiResponse = Assert.IsType<Application.Models.Common.ApiResponse<DeleteProductResponse>>(notFoundResult.Value);
+        Assert.False(apiResponse.Success);
     }
 }
 
