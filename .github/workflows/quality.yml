@@ -40,9 +40,10 @@ jobs:
           /k:"diegoknsk_fiap-fase4-orderhub-api"
           /o:"diegoknsk"
           /d:sonar.token="$SONAR_TOKEN"
-          /d:sonar.cs.opencover.reportsPaths="./TestResults/coverage/coverage.opencover.xml"
+          /d:sonar.cs.opencover.reportsPaths="**/TestResults/coverage/coverage.opencover.xml"
           /d:sonar.coverage.exclusions="**/*Program.cs,**/*Startup.cs,**/Migrations/**,**/*Dto.cs"
           /d:sonar.scanner.scanAll=false
+          /d:sonar.projectBaseDir="${{ github.workspace }}"
 
       - name: Restore
         run: dotnet restore FastFood.OrderHub.sln
@@ -83,6 +84,20 @@ jobs:
             ls -la ./TestResults/coverage/
           else
             echo "No coverage files found to consolidate"
+          fi
+
+      - name: Verify coverage file before Sonar End
+        run: |
+          echo "=== Verifying coverage file ==="
+          if [ -f "./TestResults/coverage/coverage.opencover.xml" ]; then
+            echo "✓ Coverage file exists at ./TestResults/coverage/coverage.opencover.xml"
+            ls -lh ./TestResults/coverage/coverage.opencover.xml
+            echo "File size: $(du -h ./TestResults/coverage/coverage.opencover.xml | cut -f1)"
+          else
+            echo "✗ Coverage file NOT found at ./TestResults/coverage/coverage.opencover.xml"
+            echo "Searching for coverage files..."
+            find . -name "coverage.opencover.xml" -type f
+            exit 1
           fi
 
       - name: Sonar - End
