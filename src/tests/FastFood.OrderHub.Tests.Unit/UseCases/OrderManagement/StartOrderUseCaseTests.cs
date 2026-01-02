@@ -93,4 +93,36 @@ public class StartOrderUseCaseTests
         // Assert
         Assert.NotEqual(Guid.Empty, result.OrderId);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenOrderCreated_ShouldSetCreatedAt()
+    {
+        // Arrange
+        var customerId = Guid.NewGuid();
+        var orderCode = "ORD-001";
+        var input = new StartOrderInputModel
+        {
+            CustomerId = customerId
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GenerateOrderCodeAsync())
+            .ReturnsAsync(orderCode);
+
+        _orderDataSourceMock
+            .Setup(x => x.AddAsync(It.IsAny<OrderDto>()))
+            .ReturnsAsync(Guid.NewGuid());
+
+        var beforeExecution = DateTime.UtcNow;
+
+        // Act
+        var result = await _useCase.ExecuteAsync(input);
+
+        var afterExecution = DateTime.UtcNow;
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.CreatedAt >= beforeExecution);
+        Assert.True(result.CreatedAt <= afterExecution);
+    }
 }

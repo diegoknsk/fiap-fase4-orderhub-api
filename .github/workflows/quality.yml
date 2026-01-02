@@ -209,6 +209,89 @@ jobs:
             exit 1
           fi
 
+      - name: Check Coverage Threshold (80%)
+        run: |
+          echo "=== Checking Coverage Threshold ==="
+          COVERAGE_PATH="TestResults/coverage/coverage.opencover.xml"
+          MIN_COVERAGE=80
+          
+          if [ ! -f "$COVERAGE_PATH" ]; then
+            echo "✗ Coverage file not found at $COVERAGE_PATH"
+            exit 1
+          fi
+          
+          # Extract coverage percentage from OpenCover XML
+          # OpenCover stores coverage in Summary elements with numSequencePoints and visitedSequencePoints
+          # We need to calculate: (visitedSequencePoints / numSequencePoints) * 100
+          
+          echo "Extracting coverage data from OpenCover XML..."
+          
+          # Use Python to parse XML and calculate coverage (more reliable than grep/awk)
+          python3 << EOF
+          import xml.etree.ElementTree as ET
+          import sys
+          
+          try:
+              tree = ET.parse('TestResults/coverage/coverage.opencover.xml')
+              root = tree.getroot()
+              
+              total_sequence_points = 0
+              visited_sequence_points = 0
+              
+              # Find all Summary elements
+              for summary in root.findall('.//Summary'):
+                  num_seq = int(summary.get('numSequencePoints', 0))
+                  visited_seq = int(summary.get('visitedSequencePoints', 0))
+                  total_sequence_points += num_seq
+                  visited_sequence_points += visited_seq
+              
+              if total_sequence_points == 0:
+                  print("⚠ No sequence points found in coverage report")
+                  print("This might indicate no code was covered or the report is empty")
+                  sys.exit(1)
+              
+              coverage_percentage = (visited_sequence_points / total_sequence_points) * 100
+              min_coverage = float(${MIN_COVERAGE})
+              
+              print("")
+              print("==========================================")
+              print("📊 CODE COVERAGE REPORT")
+              print("==========================================")
+              print(f"Total sequence points: {total_sequence_points:,}")
+              print(f"Visited sequence points: {visited_sequence_points:,}")
+              print(f"Coverage: {coverage_percentage:.2f}%")
+              print(f"Minimum required: {min_coverage:.0f}%")
+              print("==========================================")
+              print("")
+              
+              if coverage_percentage < min_coverage:
+                  print(f"❌ FAIL: Coverage {coverage_percentage:.2f}% is below minimum {min_coverage:.0f}%")
+                  print("Please add more tests to increase coverage before merging.")
+                  sys.exit(1)
+              else:
+                  print(f"✅ PASS: Coverage {coverage_percentage:.2f}% meets minimum {min_coverage:.0f}%")
+                  sys.exit(0)
+                  
+          except Exception as e:
+              print(f"✗ Error parsing coverage file: {e}")
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
+          EOF
+          
+          EXIT_CODE=$?
+          
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "=========================================="
+            echo "❌ COVERAGE CHECK FAILED"
+            echo "=========================================="
+            echo "The code coverage is below the minimum threshold of ${MIN_COVERAGE}%"
+            echo "Please add more tests to increase coverage before merging."
+            echo "=========================================="
+            exit 1
+          fi
+
       - name: Sonar - End
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

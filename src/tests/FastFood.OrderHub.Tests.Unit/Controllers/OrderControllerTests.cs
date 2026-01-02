@@ -360,4 +360,352 @@ public class OrderControllerTests
         Assert.Equal(orderId, response.OrderId);
         Assert.Equal((int)EnumOrderStatus.AwaitingPayment, response.OrderStatus);
     }
+
+    [Fact]
+    public async Task UpdateProduct_WhenValidInput_ShouldReturnOk()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderedProductId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var input = new UpdateProductInOrderInputModel
+        {
+            OrderId = orderId,
+            OrderedProductId = orderedProductId,
+            Quantity = 3,
+            Observation = "Updated observation"
+        };
+
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 25.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = orderedProductId,
+                    ProductId = productId,
+                    OrderId = orderId,
+                    Quantity = 1,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        var productDto = new ProductDto
+        {
+            Id = productId,
+            Name = "Test Product",
+            Category = 1,
+            Price = 10.50m,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = new List<ProductBaseIngredientDto>()
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _productDataSourceMock
+            .Setup(x => x.GetByIdAsync(productId))
+            .ReturnsAsync(productDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _controller.UpdateProduct(input);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<UpdateProductInOrderResponse>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.NotNull(apiResponse.Content);
+        var response = Assert.IsType<UpdateProductInOrderResponse>(apiResponse.Content);
+        Assert.Equal(orderId, response.OrderId);
+    }
+
+    [Fact]
+    public async Task UpdateProduct_WhenOrderDoesNotExist_ShouldReturnNotFound()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var input = new UpdateProductInOrderInputModel
+        {
+            OrderId = orderId,
+            OrderedProductId = Guid.NewGuid(),
+            Quantity = 2
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync((OrderDto?)null);
+
+        // Act
+        var result = await _controller.UpdateProduct(input);
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<UpdateProductInOrderResponse>>(notFoundResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task RemoveProduct_WhenOrderDoesNotExist_ShouldReturnNotFound()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var input = new RemoveProductFromOrderInputModel
+        {
+            OrderId = orderId,
+            OrderedProductId = Guid.NewGuid()
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync((OrderDto?)null);
+
+        // Act
+        var result = await _controller.RemoveProduct(input);
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<RemoveProductFromOrderResponse>>(notFoundResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task ConfirmSelection_WhenOrderDoesNotExist_ShouldReturnNotFound()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync((OrderDto?)null);
+
+        // Act
+        var result = await _controller.ConfirmSelection(orderId);
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<ConfirmOrderSelectionResponse>>(notFoundResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task GetPaged_WithStatus_ShouldReturnOk()
+    {
+        // Arrange
+        var status = (int)EnumOrderStatus.Started;
+        _orderDataSourceMock
+            .Setup(x => x.GetPagedAsync(1, 10, status))
+            .ReturnsAsync(new List<OrderDto>());
+
+        // Act
+        var result = await _controller.GetPaged(1, 10, status);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<GetPagedOrdersResponse>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task Start_WhenArgumentException_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var input = new StartOrderInputModel
+        {
+            CustomerId = Guid.Empty // Pode causar erro
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GenerateOrderCodeAsync())
+            .ReturnsAsync("ORD-001");
+
+        _orderDataSourceMock
+            .Setup(x => x.AddAsync(It.IsAny<OrderDto>()))
+            .ThrowsAsync(new ArgumentException("Invalid customer"));
+
+        // Act
+        var result = await _controller.Start(input);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<StartOrderResponse>>(badRequestResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task AddProduct_WhenArgumentException_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var input = new AddProductToOrderInputModel
+        {
+            OrderId = orderId,
+            ProductId = Guid.NewGuid(),
+            Quantity = 0 // Quantidade inválida
+        };
+
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 0,
+            Items = new List<OrderedProductDto>()
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        // Act
+        var result = await _controller.AddProduct(input);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<AddProductToOrderResponse>>(badRequestResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task AddProduct_WhenInvalidOperationException_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var input = new AddProductToOrderInputModel
+        {
+            OrderId = orderId,
+            ProductId = productId,
+            Quantity = 2
+        };
+
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 0,
+            Items = new List<OrderedProductDto>()
+        };
+
+        var productDto = new ProductDto
+        {
+            Id = productId,
+            Name = "Test Product",
+            Category = 1,
+            Price = 10.50m,
+            IsActive = false, // Inativo
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = new List<ProductBaseIngredientDto>()
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _productDataSourceMock
+            .Setup(x => x.GetByIdAsync(productId))
+            .ReturnsAsync(productDto);
+
+        // Act
+        var result = await _controller.AddProduct(input);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<AddProductToOrderResponse>>(badRequestResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task UpdateProduct_WhenArgumentException_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var input = new UpdateProductInOrderInputModel
+        {
+            OrderId = orderId,
+            OrderedProductId = Guid.NewGuid(),
+            Quantity = 0 // Quantidade inválida
+        };
+
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 25.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = Guid.NewGuid(),
+                    OrderId = orderId,
+                    Quantity = 1,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        // Act
+        var result = await _controller.UpdateProduct(input);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<UpdateProductInOrderResponse>>(badRequestResult.Value);
+        Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task ConfirmSelection_WhenInvalidOperationException_ShouldReturnBadRequest()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 0,
+            Items = new List<OrderedProductDto>() // Sem itens
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        // Act
+        var result = await _controller.ConfirmSelection(orderId);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        var apiResponse = Assert.IsType<ApiResponse<ConfirmOrderSelectionResponse>>(badRequestResult.Value);
+        Assert.False(apiResponse.Success);
+    }
 }

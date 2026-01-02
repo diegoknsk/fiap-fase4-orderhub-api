@@ -243,4 +243,170 @@ public class UpdateProductInOrderUseCaseTests
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => _useCase.ExecuteAsync(input));
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WithCustomIngredients_ShouldUpdateCustomIngredients()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderedProductId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var baseIngredientId = Guid.NewGuid();
+
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 25.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = orderedProductId,
+                    ProductId = productId,
+                    OrderId = orderId,
+                    Quantity = 1,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        var productDto = new ProductDto
+        {
+            Id = productId,
+            Name = "Test Product",
+            Category = 1,
+            Price = 10.50m,
+            Description = "Test Description",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = new List<ProductBaseIngredientDto>
+            {
+                new ProductBaseIngredientDto
+                {
+                    Id = baseIngredientId,
+                    Name = "Base Ingredient",
+                    Price = 2.00m,
+                    ProductId = productId
+                }
+            }
+        };
+
+        var input = new UpdateProductInOrderInputModel
+        {
+            OrderId = orderId,
+            OrderedProductId = orderedProductId,
+            Quantity = 2,
+            Observation = "Updated observation",
+            CustomIngredients = new List<CustomIngredientInputModel>
+            {
+                new CustomIngredientInputModel
+                {
+                    ProductBaseIngredientId = baseIngredientId,
+                    Quantity = 5
+                }
+            }
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _productDataSourceMock
+            .Setup(x => x.GetByIdAsync(productId))
+            .ReturnsAsync(productDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _useCase.ExecuteAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        _orderDataSourceMock.Verify(
+            x => x.UpdateAsync(It.Is<OrderDto>(o =>
+                o.Items[0].CustomIngredients.Count == 1 &&
+                o.Items[0].CustomIngredients[0].ProductBaseIngredientId == baseIngredientId &&
+                o.Items[0].CustomIngredients[0].Quantity == 5)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenObservationIsUpdated_ShouldUpdateObservation()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderedProductId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 25.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = orderedProductId,
+                    ProductId = productId,
+                    OrderId = orderId,
+                    Quantity = 1,
+                    FinalPrice = 25.00m,
+                    Observation = "Original observation",
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        var productDto = new ProductDto
+        {
+            Id = productId,
+            Name = "Test Product",
+            Category = 1,
+            Price = 10.50m,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = new List<ProductBaseIngredientDto>()
+        };
+
+        var input = new UpdateProductInOrderInputModel
+        {
+            OrderId = orderId,
+            OrderedProductId = orderedProductId,
+            Quantity = 2,
+            Observation = "Updated observation"
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _productDataSourceMock
+            .Setup(x => x.GetByIdAsync(productId))
+            .ReturnsAsync(productDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _useCase.ExecuteAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        _orderDataSourceMock.Verify(
+            x => x.UpdateAsync(It.Is<OrderDto>(o =>
+                o.Items[0].Observation == "Updated observation")),
+            Times.Once);
+    }
 }
