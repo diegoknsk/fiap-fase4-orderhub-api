@@ -38,6 +38,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "=== Configuring SonarCloud for Pull Request ==="
+            echo "PR Number: ${{ github.event.pull_request.number }}"
+            echo "Head Ref: ${{ github.head_ref }}"
+            echo "Base Ref: ${{ github.base_ref }}"
+            echo "PR Branch: ${{ github.event.pull_request.head.ref }}"
+            echo "Base Branch: ${{ github.event.pull_request.base.ref }}"
+            echo "Repository: ${{ github.repository }}"
+            echo ""
+            echo "=== Checking for code changes ==="
+            git diff --name-only ${{ github.event.pull_request.base.ref }}...${{ github.event.pull_request.head.ref }} | grep -E '\.(cs|csproj)$' || echo "No .cs or .csproj files changed"
             dotnet-sonarscanner begin \
               /k:"diegoknsk_fiap-fase4-orderhub-api" \
               /o:"diegoknsk" \
@@ -47,11 +57,15 @@ jobs:
               /d:sonar.scanner.scanAll=false \
               /d:sonar.projectBaseDir="${{ github.workspace }}" \
               /d:sonar.sources="src" \
+              /d:sonar.inclusions="**/*.cs" \
               /d:sonar.qualitygate.wait=true \
+              /d:sonar.pullrequest.provider=github \
+              /d:sonar.pullrequest.github.repository="${{ github.repository }}" \
               /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
-              /d:sonar.pullrequest.branch="${{ github.head_ref }}" \
-              /d:sonar.pullrequest.base="${{ github.base_ref }}"
+              /d:sonar.pullrequest.branch="${{ github.event.pull_request.head.ref }}" \
+              /d:sonar.pullrequest.base="${{ github.event.pull_request.base.ref }}"
           else
+            echo "=== Configuring SonarCloud for Branch Analysis ==="
             dotnet-sonarscanner begin \
               /k:"diegoknsk_fiap-fase4-orderhub-api" \
               /o:"diegoknsk" \
@@ -61,6 +75,7 @@ jobs:
               /d:sonar.scanner.scanAll=false \
               /d:sonar.projectBaseDir="${{ github.workspace }}" \
               /d:sonar.sources="src" \
+              /d:sonar.inclusions="**/*.cs" \
               /d:sonar.qualitygate.wait=true
           fi
 
