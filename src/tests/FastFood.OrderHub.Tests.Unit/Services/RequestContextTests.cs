@@ -326,4 +326,114 @@ public class RequestContextTests
         Assert.Equal(customerId.ToString(), result);
         Assert.NotEqual(differentSub.ToString(), result);
     }
+
+    [Fact]
+    public void GetBearerToken_WhenHttpContextIsNull_ShouldReturnNull()
+    {
+        // Arrange
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext?)null);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetBearerToken_WhenAuthorizationHeaderIsMissing_ShouldReturnNull()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetBearerToken_WhenAuthorizationHeaderHasBearerPrefix_ShouldReturnTokenWithoutPrefix()
+    {
+        // Arrange
+        var token = "test-token-123";
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = $"Bearer {token}";
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(token, result);
+        Assert.DoesNotContain("Bearer", result);
+    }
+
+    [Fact]
+    public void GetBearerToken_WhenAuthorizationHeaderHasBearerPrefixCaseInsensitive_ShouldReturnTokenWithoutPrefix()
+    {
+        // Arrange
+        var token = "test-token-123";
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = $"bearer {token}";
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(token, result);
+        Assert.DoesNotContain("bearer", result);
+    }
+
+    [Fact]
+    public void GetBearerToken_WhenAuthorizationHeaderDoesNotHaveBearerPrefix_ShouldReturnFullHeader()
+    {
+        // Arrange
+        var token = "test-token-123";
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = token;
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(token, result);
+    }
+
+    [Fact]
+    public void GetBearerToken_WhenAuthorizationHeaderIsEmpty_ShouldReturnNull()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = string.Empty;
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void GetBearerToken_WhenAuthorizationHeaderIsWhitespace_ShouldReturnNull()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["Authorization"] = "   ";
+        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _requestContext.GetBearerToken();
+
+        // Assert
+        Assert.Null(result);
+    }
 }

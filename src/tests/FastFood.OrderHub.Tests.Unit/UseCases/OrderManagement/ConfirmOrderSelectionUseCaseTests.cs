@@ -348,4 +348,174 @@ public class ConfirmOrderSelectionUseCaseTests
         _orderDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<OrderDto>()), Times.Never);
         _paymentServiceClientMock.Verify(x => x.CreatePaymentAsync(It.IsAny<CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenBearerTokenIsNull_ShouldLogWarningButContinue()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 50.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = Guid.NewGuid(),
+                    OrderId = orderId,
+                    Quantity = 2,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        var input = new ConfirmOrderSelectionInputModel
+        {
+            OrderId = orderId
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Configurar RequestContext para retornar null (sem token)
+        _requestContextMock.Setup(x => x.GetBearerToken()).Returns((string?)null);
+
+        // Act
+        var result = await _useCase.ExecuteAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal((int)EnumOrderStatus.AwaitingPayment, result.OrderStatus);
+
+        // Verificar que PaymentServiceClient NÃO foi chamado (token ausente)
+        _paymentServiceClientMock.Verify(
+            x => x.CreatePaymentAsync(It.IsAny<CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenBearerTokenIsEmpty_ShouldLogWarningButContinue()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 50.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = Guid.NewGuid(),
+                    OrderId = orderId,
+                    Quantity = 2,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        var input = new ConfirmOrderSelectionInputModel
+        {
+            OrderId = orderId
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Configurar RequestContext para retornar string vazia
+        _requestContextMock.Setup(x => x.GetBearerToken()).Returns(string.Empty);
+
+        // Act
+        var result = await _useCase.ExecuteAsync(input);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal((int)EnumOrderStatus.AwaitingPayment, result.OrderStatus);
+
+        // Verificar que PaymentServiceClient NÃO foi chamado (token vazio)
+        _paymentServiceClientMock.Verify(
+            x => x.CreatePaymentAsync(It.IsAny<CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenPaymentServiceThrowsGenericException_ShouldRevertOrderStatus()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 50.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = Guid.NewGuid(),
+                    OrderId = orderId,
+                    Quantity = 2,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        var input = new ConfirmOrderSelectionInputModel
+        {
+            OrderId = orderId
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Mock PaymentServiceClient para lançar Exception genérica (não HttpRequestException)
+        _paymentServiceClientMock
+            .Setup(x => x.CreatePaymentAsync(It.IsAny<CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Erro genérico"));
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Contains("iniciar pagamento", exception.Message);
+
+        // Verificar rollback
+        _orderDataSourceMock.Verify(
+            x => x.UpdateAsync(It.Is<OrderDto>(o =>
+                o.Id == orderId &&
+                o.OrderStatus == (int)EnumOrderStatus.Started)),
+            Times.Once);
+    }
+
 }

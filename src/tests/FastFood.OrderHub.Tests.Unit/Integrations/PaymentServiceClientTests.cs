@@ -251,6 +251,318 @@ public class PaymentServiceClientTests
             () => client.CreatePaymentAsync(request, "token"));
     }
 
+    [Fact]
+    public async Task CreatePaymentAsync_WhenResponseIsNull_ShouldThrowHttpRequestException()
+    {
+        // Arrange
+        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("null", Encoding.UTF8, "application/json")
+        };
+
+        var httpClient = CreateHttpClient(httpResponse);
+        var client = new PaymentServiceClient(httpClient, _optionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = Guid.NewGuid(),
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = Guid.NewGuid(), Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.CreatePaymentAsync(request, "token"));
+
+        Assert.Contains("Resposta inválida", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_WhenNotFound_ShouldThrowHttpRequestException()
+    {
+        // Arrange
+        var httpResponse = new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("Not Found", Encoding.UTF8, "text/plain")
+        };
+
+        var httpClient = CreateHttpClient(httpResponse);
+        var client = new PaymentServiceClient(httpClient, _optionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = Guid.NewGuid(),
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = Guid.NewGuid(), Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.CreatePaymentAsync(request, "token"));
+
+        Assert.Contains("NotFound", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_WhenForbidden_ShouldThrowHttpRequestException()
+    {
+        // Arrange
+        var httpResponse = new HttpResponseMessage(HttpStatusCode.Forbidden)
+        {
+            Content = new StringContent("Forbidden", Encoding.UTF8, "text/plain")
+        };
+
+        var httpClient = CreateHttpClient(httpResponse);
+        var client = new PaymentServiceClient(httpClient, _optionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = Guid.NewGuid(),
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = Guid.NewGuid(), Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.CreatePaymentAsync(request, "token"));
+
+        Assert.Contains("Forbidden", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_WhenTimeout_ShouldThrowHttpRequestException()
+    {
+        // Arrange
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new TaskCanceledException("Timeout", new TimeoutException()));
+
+        var httpClient = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri(_options.BaseUrl)
+        };
+
+        var client = new PaymentServiceClient(httpClient, _optionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = Guid.NewGuid(),
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = Guid.NewGuid(), Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.CreatePaymentAsync(request, "token"));
+
+        Assert.Contains("Timeout", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_WhenRetryEnabledAndSucceedsOnSecondAttempt_ShouldReturnResponse()
+    {
+        // Arrange
+        var paymentId = Guid.NewGuid();
+        var orderId = Guid.NewGuid();
+        var bearerToken = "test-bearer-token";
+
+        var responseContent = new CreatePaymentResponse
+        {
+            PaymentId = paymentId,
+            Status = "Created",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var jsonResponse = JsonSerializer.Serialize(responseContent, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        var successResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
+        };
+
+        var errorResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal Server Error", Encoding.UTF8, "text/plain")
+        };
+
+        var attempt = 0;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                attempt++;
+                return attempt == 1 ? errorResponse : successResponse;
+            });
+
+        var httpClient = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri(_options.BaseUrl)
+        };
+
+        var retryOptions = new PaymentServiceOptions
+        {
+            BaseUrl = _options.BaseUrl,
+            TimeoutSeconds = 30,
+            RetryEnabled = true,
+            RetryCount = 2
+        };
+
+        var retryOptionsMock = new Mock<IOptions<PaymentServiceOptions>>();
+        retryOptionsMock.Setup(x => x.Value).Returns(retryOptions);
+
+        var client = new PaymentServiceClient(httpClient, retryOptionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = orderId,
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = orderId, Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act
+        var result = await client.CreatePaymentAsync(request, bearerToken);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(paymentId, result.PaymentId);
+        Assert.Equal(2, attempt); // Deve ter tentado 2 vezes
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_WhenRetryEnabledAndFailsAfterAllAttempts_ShouldThrowHttpRequestException()
+    {
+        // Arrange
+        var errorResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent("Internal Server Error", Encoding.UTF8, "text/plain")
+        };
+
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(errorResponse);
+
+        var httpClient = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri(_options.BaseUrl)
+        };
+
+        var retryOptions = new PaymentServiceOptions
+        {
+            BaseUrl = _options.BaseUrl,
+            TimeoutSeconds = 30,
+            RetryEnabled = true,
+            RetryCount = 2
+        };
+
+        var retryOptionsMock = new Mock<IOptions<PaymentServiceOptions>>();
+        retryOptionsMock.Setup(x => x.Value).Returns(retryOptions);
+
+        var client = new PaymentServiceClient(httpClient, retryOptionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = Guid.NewGuid(),
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = Guid.NewGuid(), Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.CreatePaymentAsync(request, "token"));
+
+        Assert.Contains("tentativa(s)", exception.Message);
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_WhenGenericException_ShouldThrowHttpRequestException()
+    {
+        // Arrange
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Erro genérico"));
+
+        var httpClient = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri(_options.BaseUrl)
+        };
+
+        var client = new PaymentServiceClient(httpClient, _optionsMock.Object, _loggerMock.Object);
+
+        var request = new CreatePaymentRequest
+        {
+            OrderId = Guid.NewGuid(),
+            TotalAmount = 50.00m,
+            OrderSnapshot = new OrderSnapshot
+            {
+                Order = new OrderInfo { OrderId = Guid.NewGuid(), Code = "ORD-001", CreatedAt = DateTime.UtcNow },
+                Pricing = new PricingInfo { TotalPrice = 50.00m, Currency = "BRL" },
+                Items = new List<ItemInfo>(),
+                Version = 1
+            }
+        };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.CreatePaymentAsync(request, "token"));
+
+        Assert.Contains("Erro inesperado", exception.Message);
+    }
+
     private HttpClient CreateHttpClient(HttpResponseMessage response, Func<HttpRequestMessage, Task>? onRequest = null)
     {
         var handler = new Mock<HttpMessageHandler>();
