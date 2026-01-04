@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.OutputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -25,19 +26,19 @@ public class UpdateProductUseCase
         _presenter = presenter;
     }
 
-    public async Task<UpdateProductResponse?> ExecuteAsync(UpdateProductInputModel input)
+    public async Task<UpdateProductResponse> ExecuteAsync(UpdateProductInputModel input)
     {
         // Buscar produto existente
         var existingProductDto = await _productDataSource.GetByIdAsync(input.ProductId);
         if (existingProductDto == null)
-            return null;
+            throw new BusinessException("Produto não encontrado.");
 
         // Validações de negócio
         if (string.IsNullOrWhiteSpace(input.Name))
-            throw new ArgumentException("Nome do produto não pode ser vazio.", nameof(input.Name));
+            throw new BusinessException("Nome do produto não pode ser vazio.");
 
         if (input.Price <= 0)
-            throw new ArgumentException("Preço do produto deve ser maior que zero.", nameof(input.Price));
+            throw new BusinessException("Preço do produto deve ser maior que zero.");
 
         // Converter ProductDto para entidade de domínio Product
         var product = ConvertToDomainEntity(existingProductDto);
@@ -90,7 +91,7 @@ public class UpdateProductUseCase
 
         // Validar produto usando método de domínio
         if (!product.IsValid())
-            throw new InvalidOperationException("Produto inválido.");
+            throw new BusinessException("Produto inválido.");
 
         // Converter entidade de domínio de volta para DTO
         var productDto = ConvertToDto(product, existingProductDto.IsActive, existingProductDto.CreatedAt);
@@ -98,25 +99,7 @@ public class UpdateProductUseCase
         // Salvar no DataSource
         await _productDataSource.UpdateAsync(productDto);
 
-        // Criar OutputModel
-        var output = new UpdateProductOutputModel
-        {
-            ProductId = product.Id,
-            Name = product.Name,
-            Category = (int)product.Category,
-            Price = product.Price,
-            Description = product.Description,
-            ImageUrl = product.Image?.Url,
-            IsActive = productDto.IsActive,
-            CreatedAt = productDto.CreatedAt,
-            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientOutputModel
-            {
-                Id = bi.Id,
-                Name = bi.Name,
-                Price = bi.Price
-            }).ToList()
-        };
-
+        var output = AdaptToOutputModel(product, productDto.IsActive, productDto.CreatedAt);
         return _presenter.Present(output);
     }
 
@@ -158,6 +141,27 @@ public class UpdateProductUseCase
                 Name = bi.Name,
                 Price = bi.Price,
                 ProductId = bi.ProductId
+            }).ToList()
+        };
+    }
+
+    private UpdateProductOutputModel AdaptToOutputModel(Product product, bool isActive, DateTime createdAt)
+    {
+        return new UpdateProductOutputModel
+        {
+            ProductId = product.Id,
+            Name = product.Name,
+            Category = (int)product.Category,
+            Price = product.Price,
+            Description = product.Description,
+            ImageUrl = product.Image?.Url,
+            IsActive = isActive,
+            CreatedAt = createdAt,
+            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientOutputModel
+            {
+                Id = bi.Id,
+                Name = bi.Name,
+                Price = bi.Price
             }).ToList()
         };
     }

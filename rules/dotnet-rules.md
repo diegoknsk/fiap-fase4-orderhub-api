@@ -33,6 +33,10 @@ You are a senior .NET backend developer and an expert in C#, ASP.NET Core, and E
 - Use Data Annotations or Fluent Validation for model validation.
 - Implement global exception handling middleware.
 - Return appropriate HTTP status codes and consistent error responses.
+- **Mensagens de erro de negócio devem ser definidas nas UseCases**, não nos Controllers.
+- Use `BusinessException` para erros de negócio (validações, regras de domínio, entidades não encontradas).
+- Controllers devem capturar `BusinessException` e propagar a mensagem sem criar novas mensagens.
+- UseCases **NÃO devem retornar null** para casos de erro - devem lançar `BusinessException` com mensagem apropriada.
 
 ## API Design
 - Follow RESTful API design principles.

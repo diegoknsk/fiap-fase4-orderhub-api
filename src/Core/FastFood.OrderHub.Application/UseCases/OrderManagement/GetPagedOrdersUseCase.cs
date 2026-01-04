@@ -1,3 +1,4 @@
+using FastFood.OrderHub.Application.DTOs;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.OutputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -48,7 +49,19 @@ public class GetPagedOrdersUseCase
         var totalPages = totalCount > 0 ? (int)Math.Ceiling(totalCount / (double)input.PageSize) : 0;
         var hasNextPage = orders.Count == input.PageSize && totalCount > input.Page * input.PageSize;
 
-        var output = new GetPagedOrdersOutputModel
+        var output = AdaptToOutputModel(orders, input.Page, input.PageSize, totalCount, totalPages, hasNextPage);
+        return _presenter.Present(output);
+    }
+
+    private GetPagedOrdersOutputModel AdaptToOutputModel(
+        List<OrderDto> orders,
+        int page,
+        int pageSize,
+        int totalCount,
+        int totalPages,
+        bool hasNextPage)
+    {
+        return new GetPagedOrdersOutputModel
         {
             Items = orders.Select(order => new OrderSummaryOutputModel
             {
@@ -59,14 +72,12 @@ public class GetPagedOrdersUseCase
                 OrderStatus = order.OrderStatus,
                 TotalPrice = order.TotalPrice
             }).ToList(),
-            Page = input.Page,
-            PageSize = input.PageSize,
+            Page = page,
+            PageSize = pageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
             HasNextPage = hasNextPage
         };
-
-        return _presenter.Present(output);
     }
 }
 

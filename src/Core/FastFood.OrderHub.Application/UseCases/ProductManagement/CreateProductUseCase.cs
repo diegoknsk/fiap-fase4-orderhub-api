@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.OutputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -29,10 +30,10 @@ public class CreateProductUseCase
     {
         // Validações de negócio
         if (string.IsNullOrWhiteSpace(input.Name))
-            throw new ArgumentException("Nome do produto não pode ser vazio.", nameof(input.Name));
+            throw new BusinessException("Nome do produto não pode ser vazio.");
 
         if (input.Price <= 0)
-            throw new ArgumentException("Preço do produto deve ser maior que zero.", nameof(input.Price));
+            throw new BusinessException("Preço do produto deve ser maior que zero.");
 
         // Criar entidade de domínio Product
         var product = new Product
@@ -60,7 +61,7 @@ public class CreateProductUseCase
 
         // Validar produto usando método de domínio
         if (!product.IsValid())
-            throw new InvalidOperationException("Produto inválido.");
+            throw new BusinessException("Produto inválido.");
 
         // Converter entidade de domínio para DTO
         var productDto = ConvertToDto(product);
@@ -68,25 +69,7 @@ public class CreateProductUseCase
         // Salvar no DataSource
         await _productDataSource.AddAsync(productDto);
 
-        // Criar OutputModel
-        var output = new CreateProductOutputModel
-        {
-            ProductId = product.Id,
-            Name = product.Name,
-            Category = (int)product.Category,
-            Price = product.Price,
-            Description = product.Description,
-            ImageUrl = product.Image?.Url,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientOutputModel
-            {
-                Id = bi.Id,
-                Name = bi.Name,
-                Price = bi.Price
-            }).ToList()
-        };
-
+        var output = AdaptToOutputModel(product);
         return _presenter.Present(output);
     }
 
@@ -108,6 +91,27 @@ public class CreateProductUseCase
                 Name = bi.Name,
                 Price = bi.Price,
                 ProductId = bi.ProductId
+            }).ToList()
+        };
+    }
+
+    private CreateProductOutputModel AdaptToOutputModel(Product product)
+    {
+        return new CreateProductOutputModel
+        {
+            ProductId = product.Id,
+            Name = product.Name,
+            Category = (int)product.Category,
+            Price = product.Price,
+            Description = product.Description,
+            ImageUrl = product.Image?.Url,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            BaseIngredients = product.Ingredients.Select(bi => new ProductBaseIngredientOutputModel
+            {
+                Id = bi.Id,
+                Name = bi.Name,
+                Price = bi.Price
             }).ToList()
         };
     }

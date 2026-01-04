@@ -1,3 +1,4 @@
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.ProductManagement;
@@ -54,7 +55,7 @@ public class DeleteProductUseCaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_Should_Return_Null_When_Product_Not_Found()
+    public async Task ExecuteAsync_Should_Throw_BusinessException_When_Product_Not_Found()
     {
         // Arrange
         var productId = Guid.NewGuid();
@@ -67,11 +68,9 @@ public class DeleteProductUseCaseTests
             .Setup(x => x.ExistsAsync(productId))
             .ReturnsAsync(false);
 
-        // Act
-        var result = await _useCase.ExecuteAsync(input);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Produto não encontrado.", exception.Message);
         _productDataSourceMock.Verify(x => x.RemoveAsync(It.IsAny<Guid>()), Times.Never);
     }
 

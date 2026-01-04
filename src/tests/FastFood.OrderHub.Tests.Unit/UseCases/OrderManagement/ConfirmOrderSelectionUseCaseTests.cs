@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.OrderManagement;
@@ -86,7 +87,7 @@ public class ConfirmOrderSelectionUseCaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenOrderDoesNotExist_ShouldReturnNull()
+    public async Task ExecuteAsync_WhenOrderDoesNotExist_ShouldThrowBusinessException()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -99,16 +100,14 @@ public class ConfirmOrderSelectionUseCaseTests
             .Setup(x => x.GetByIdAsync(orderId))
             .ReturnsAsync((OrderDto?)null);
 
-        // Act
-        var result = await _useCase.ExecuteAsync(input);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Pedido não encontrado.", exception.Message);
         _orderDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<OrderDto>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenOrderHasNoItems_ShouldThrowInvalidOperationException()
+    public async Task ExecuteAsync_WhenOrderHasNoItems_ShouldThrowBusinessException()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -133,12 +132,13 @@ public class ConfirmOrderSelectionUseCaseTests
             .ReturnsAsync(orderDto);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _useCase.ExecuteAsync(input));
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Não é possível confirmar um pedido sem itens.", exception.Message);
         _orderDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<OrderDto>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenOrderStatusIsNotStarted_ShouldThrowInvalidOperationException()
+    public async Task ExecuteAsync_WhenOrderStatusIsNotStarted_ShouldThrowBusinessException()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -174,7 +174,8 @@ public class ConfirmOrderSelectionUseCaseTests
             .ReturnsAsync(orderDto);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _useCase.ExecuteAsync(input));
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Apenas pedidos com status 'Started' podem ser confirmados.", exception.Message);
         _orderDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<OrderDto>()), Times.Never);
     }
 }

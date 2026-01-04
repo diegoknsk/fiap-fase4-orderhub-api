@@ -45,6 +45,34 @@ public class OrderDynamoDbRepository
     }
 
     /// <summary>
+    /// Obtém pedido por ID e CustomerId (garante que o pedido pertence ao cliente)
+    /// </summary>
+    public async Task<OrderDto?> GetByIdForCustomerAsync(Guid orderId, Guid customerId)
+    {
+        var request = new GetItemRequest
+        {
+            TableName = _tableName,
+            Key = new Dictionary<string, AttributeValue>
+            {
+                { DynamoDbTableConfiguration.ORDER_ID_ATTRIBUTE, new AttributeValue { S = orderId.ToString() } }
+            }
+        };
+
+        var response = await _dynamoDbClient.GetItemAsync(request);
+
+        if (!response.Item.Any())
+            return null;
+
+        var order = MapFromDynamoDb(response.Item);
+
+        // Verifica se o pedido pertence ao cliente
+        if (order.CustomerId != customerId)
+            return null;
+
+        return order;
+    }
+
+    /// <summary>
     /// Obtém pedidos por CustomerId usando GSI
     /// </summary>
     public async Task<List<OrderDto>> GetByCustomerIdAsync(Guid customerId)

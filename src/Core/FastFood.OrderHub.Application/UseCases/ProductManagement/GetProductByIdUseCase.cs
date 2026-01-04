@@ -1,3 +1,5 @@
+using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.OutputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -22,14 +24,20 @@ public class GetProductByIdUseCase
         _presenter = presenter;
     }
 
-    public async Task<GetProductByIdResponse?> ExecuteAsync(GetProductByIdInputModel input)
+    public async Task<GetProductByIdResponse> ExecuteAsync(GetProductByIdInputModel input)
     {
         var productDto = await _productDataSource.GetByIdAsync(input.ProductId);
 
         if (productDto == null)
-            return null;
+            throw new BusinessException("Produto não encontrado.");
 
-        var output = new GetProductByIdOutputModel
+        var output = AdaptToOutputModel(productDto);
+        return _presenter.Present(output);
+    }
+
+    private GetProductByIdOutputModel AdaptToOutputModel(DTOs.ProductDto productDto)
+    {
+        return new GetProductByIdOutputModel
         {
             ProductId = productDto.Id,
             Name = productDto.Name,
@@ -46,8 +54,6 @@ public class GetProductByIdUseCase
                 Price = bi.Price
             }).ToList()
         };
-
-        return _presenter.Present(output);
     }
 }
 

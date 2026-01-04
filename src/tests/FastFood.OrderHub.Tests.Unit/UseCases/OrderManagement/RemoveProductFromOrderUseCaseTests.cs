@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.OrderManagement;
@@ -91,7 +92,7 @@ public class RemoveProductFromOrderUseCaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenOrderDoesNotExist_ShouldReturnNull()
+    public async Task ExecuteAsync_WhenOrderDoesNotExist_ShouldThrowBusinessException()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -105,16 +106,14 @@ public class RemoveProductFromOrderUseCaseTests
             .Setup(x => x.GetByIdAsync(orderId))
             .ReturnsAsync((OrderDto?)null);
 
-        // Act
-        var result = await _useCase.ExecuteAsync(input);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Pedido não encontrado.", exception.Message);
         _orderDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<OrderDto>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenOrderedProductDoesNotExist_ShouldReturnNull()
+    public async Task ExecuteAsync_WhenOrderedProductDoesNotExist_ShouldThrowBusinessException()
     {
         // Arrange
         var orderId = Guid.NewGuid();
@@ -141,11 +140,9 @@ public class RemoveProductFromOrderUseCaseTests
             .Setup(x => x.GetByIdAsync(orderId))
             .ReturnsAsync(orderDto);
 
-        // Act
-        var result = await _useCase.ExecuteAsync(input);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Produto não encontrado no pedido.", exception.Message);
         _orderDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<OrderDto>()), Times.Never);
     }
 

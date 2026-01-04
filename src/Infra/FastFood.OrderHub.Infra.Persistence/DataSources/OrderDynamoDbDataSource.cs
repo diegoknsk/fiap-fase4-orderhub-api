@@ -21,6 +21,11 @@ public class OrderDynamoDbDataSource : IOrderDataSource
         return await _repository.GetByIdAsync(id);
     }
 
+    public async Task<OrderDto?> GetByIdForCustomerAsync(Guid orderId, Guid customerId)
+    {
+        return await _repository.GetByIdForCustomerAsync(orderId, customerId);
+    }
+
     public async Task<List<OrderDto>> GetByCustomerIdAsync(Guid customerId)
     {
         return await _repository.GetByCustomerIdAsync(customerId);
