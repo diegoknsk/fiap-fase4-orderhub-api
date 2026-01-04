@@ -1,11 +1,14 @@
 using Amazon.DynamoDBv2;
 using FastFood.OrderHub.Infra.Auth;
 using FastFood.OrderHub.Application.Ports;
+using FastFood.OrderHub.Infra.Configurations;
+using FastFood.OrderHub.Infra.Integrations;
 using FastFood.OrderHub.Infra.Persistence.Configurations;
 using FastFood.OrderHub.Infra.Persistence.DataSources;
 using FastFood.OrderHub.Infra.Persistence.Repositories;
 using FastFood.OrderHub.Infra.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 
 // Configurar JWT Security Token Handler
 JwtAuthenticationConfig.ConfigureJwtSecurityTokenHandler();
@@ -59,6 +62,20 @@ builder.Services.AddScoped<OrderDynamoDbRepository>();
 // Registrar DataSources
 builder.Services.AddScoped<IProductDataSource, ProductDynamoDbDataSource>();
 builder.Services.AddScoped<IOrderDataSource, OrderDynamoDbDataSource>();
+
+// Configurar PaymentServiceOptions
+builder.Services.Configure<PaymentServiceOptions>(
+    builder.Configuration.GetSection(PaymentServiceOptions.SectionName));
+
+// Configurar HttpClient para PaymentServiceClient
+// O AddHttpClient já registra o serviço automaticamente, não é necessário AddScoped adicional
+builder.Services.AddHttpClient<IPaymentServiceClient, PaymentServiceClient>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<PaymentServiceOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 
 // Registrar Presenters (OrderManagement)
 builder.Services.AddScoped<FastFood.OrderHub.Application.Presenters.OrderManagement.GetOrderByIdPresenter>();

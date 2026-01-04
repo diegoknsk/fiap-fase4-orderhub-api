@@ -9,6 +9,7 @@ using FastFood.OrderHub.Application.UseCases.OrderManagement;
 using FastFood.OrderHub.Domain.Common.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -63,9 +64,28 @@ public class OrderControllerTests
             _orderDataSourceMock.Object,
             new RemoveProductFromOrderPresenter());
 
+        var paymentServiceClientMock = new Mock<IPaymentServiceClient>();
+        var loggerMock = new Mock<ILogger<ConfirmOrderSelectionUseCase>>();
+        
+        // Configurar RequestContext para retornar token Bearer
+        _requestContextMock.Setup(x => x.GetBearerToken()).Returns("test-bearer-token");
+        
+        // Mock PaymentServiceClient para retornar sucesso
+        paymentServiceClientMock
+            .Setup(x => x.CreatePaymentAsync(It.IsAny<FastFood.OrderHub.Application.DTOs.Payment.CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FastFood.OrderHub.Application.DTOs.Payment.CreatePaymentResponse
+            {
+                PaymentId = Guid.NewGuid(),
+                Status = "Created",
+                CreatedAt = DateTime.UtcNow
+            });
+
         _confirmOrderSelectionUseCase = new ConfirmOrderSelectionUseCase(
             _orderDataSourceMock.Object,
-            new ConfirmOrderSelectionPresenter());
+            new ConfirmOrderSelectionPresenter(),
+            paymentServiceClientMock.Object,
+            _requestContextMock.Object,
+            loggerMock.Object);
 
         _getPagedOrdersUseCase = new GetPagedOrdersUseCase(
             _orderDataSourceMock.Object,
@@ -353,6 +373,8 @@ public class OrderControllerTests
         _orderDataSourceMock
             .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
             .Returns(Task.CompletedTask);
+
+        // O PaymentServiceClient já está mockado no construtor do teste
 
         // Act
         var result = await _controller.ConfirmSelection(orderId);
@@ -713,5 +735,79 @@ public class OrderControllerTests
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
         var apiResponse = Assert.IsType<ApiResponse<ConfirmOrderSelectionResponse>>(badRequestResult.Value);
         Assert.False(apiResponse.Success);
+    }
+
+    [Fact]
+    public async Task ConfirmSelection_WhenPaymentServiceFails_ShouldReturn502BadGateway()
+    {
+        // Arrange
+        var orderId = Guid.NewGuid();
+        var orderDto = new OrderDto
+        {
+            Id = orderId,
+            Code = "ORD-001",
+            CustomerId = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            OrderStatus = (int)EnumOrderStatus.Started,
+            TotalPrice = 50.00m,
+            Items = new List<OrderedProductDto>
+            {
+                new OrderedProductDto
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = Guid.NewGuid(),
+                    OrderId = orderId,
+                    Quantity = 2,
+                    FinalPrice = 25.00m,
+                    CustomIngredients = new List<OrderedProductIngredientDto>()
+                }
+            }
+        };
+
+        _orderDataSourceMock
+            .Setup(x => x.GetByIdAsync(orderId))
+            .ReturnsAsync(orderDto);
+
+        _orderDataSourceMock
+            .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
+            .Returns(Task.CompletedTask);
+
+        // Criar um novo UseCase com PaymentServiceClient que falha
+        var paymentServiceClientMock = new Mock<IPaymentServiceClient>();
+        var loggerMock = new Mock<ILogger<ConfirmOrderSelectionUseCase>>();
+        
+        _requestContextMock.Setup(x => x.GetBearerToken()).Returns("test-bearer-token");
+        
+        // Mock PaymentServiceClient para lançar exceção
+        paymentServiceClientMock
+            .Setup(x => x.CreatePaymentAsync(It.IsAny<FastFood.OrderHub.Application.DTOs.Payment.CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new System.Net.Http.HttpRequestException("Erro ao criar pagamento no PayStream: BadRequest.", null, System.Net.HttpStatusCode.BadRequest));
+
+        var failingUseCase = new ConfirmOrderSelectionUseCase(
+            _orderDataSourceMock.Object,
+            new ConfirmOrderSelectionPresenter(),
+            paymentServiceClientMock.Object,
+            _requestContextMock.Object,
+            loggerMock.Object);
+
+        // Criar controller com o UseCase que falha
+        var controllerWithFailingPayment = new OrderController(
+            _getOrderByIdUseCase,
+            _startOrderUseCase,
+            _addProductToOrderUseCase,
+            _updateProductInOrderUseCase,
+            _removeProductFromOrderUseCase,
+            failingUseCase,
+            _getPagedOrdersUseCase);
+
+        // Act
+        var result = await controllerWithFailingPayment.ConfirmSelection(orderId);
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(502, statusCodeResult.StatusCode);
+        var apiResponse = Assert.IsType<ApiResponse<ConfirmOrderSelectionResponse>>(statusCodeResult.Value);
+        Assert.False(apiResponse.Success);
+        Assert.Contains("iniciar pagamento", apiResponse.Message ?? string.Empty);
     }
 }

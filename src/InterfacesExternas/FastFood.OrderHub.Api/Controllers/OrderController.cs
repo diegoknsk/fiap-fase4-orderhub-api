@@ -158,6 +158,7 @@ public class OrderController(
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<ConfirmOrderSelectionResponse>), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> ConfirmSelection(Guid id)
     {
         try
@@ -170,6 +171,12 @@ public class OrderController(
         {
             if (ex.Message.Contains("não encontrado"))
                 return NotFound(ApiResponse<ConfirmOrderSelectionResponse>.Fail(ex.Message));
+            
+            // Se a mensagem indica erro ao iniciar pagamento, retornar 502 Bad Gateway
+            if (ex.Message.Contains("iniciar pagamento") || ex.Message.Contains("pagamento"))
+                return StatusCode(StatusCodes.Status502BadGateway, 
+                    ApiResponse<ConfirmOrderSelectionResponse>.Fail("Erro ao iniciar pagamento. Tente novamente mais tarde."));
+            
             return BadRequest(ApiResponse<ConfirmOrderSelectionResponse>.Fail(ex.Message));
         }
     }
