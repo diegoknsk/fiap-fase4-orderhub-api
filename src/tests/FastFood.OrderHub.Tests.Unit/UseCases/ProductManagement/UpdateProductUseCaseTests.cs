@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.ProductManagement;
@@ -96,7 +97,7 @@ public class UpdateProductUseCaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_Should_Return_Null_When_Product_Not_Found()
+    public async Task ExecuteAsync_Should_Throw_BusinessException_When_Product_Not_Found()
     {
         // Arrange
         var productId = Guid.NewGuid();
@@ -112,16 +113,14 @@ public class UpdateProductUseCaseTests
             .Setup(x => x.GetByIdAsync(productId))
             .ReturnsAsync((ProductDto?)null);
 
-        // Act
-        var result = await _useCase.ExecuteAsync(input);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FastFood.OrderHub.Application.Exceptions.BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Produto não encontrado.", exception.Message);
         _productDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<ProductDto>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_Should_Throw_Exception_When_Name_Is_Empty()
+    public async Task ExecuteAsync_Should_Throw_BusinessException_When_Name_Is_Empty()
     {
         // Arrange
         var productId = Guid.NewGuid();
@@ -148,7 +147,8 @@ public class UpdateProductUseCaseTests
             .ReturnsAsync(existingProduct);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _useCase.ExecuteAsync(input));
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Nome do produto não pode ser vazio.", exception.Message);
         _productDataSourceMock.Verify(x => x.UpdateAsync(It.IsAny<ProductDto>()), Times.Never);
     }
 

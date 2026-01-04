@@ -4,6 +4,7 @@ using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Infra.Persistence.Configurations;
 using FastFood.OrderHub.Infra.Persistence.DataSources;
 using FastFood.OrderHub.Infra.Persistence.Repositories;
+using FastFood.OrderHub.Infra.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 // Configurar JWT Security Token Handler
@@ -15,6 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Adicionar IHttpContextAccessor para RequestContext
+builder.Services.AddHttpContextAccessor();
+
+// Registrar RequestContext
+builder.Services.AddScoped<IRequestContext, RequestContext>();
 
 // Configure JWT options
 builder.Services.Configure<JwtOptions>("Customer", builder.Configuration.GetSection("JwtCustomer"));

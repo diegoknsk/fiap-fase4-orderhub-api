@@ -21,6 +21,7 @@ public class OrderControllerTests
 {
     private readonly Mock<IOrderDataSource> _orderDataSourceMock;
     private readonly Mock<IProductDataSource> _productDataSourceMock;
+    private readonly Mock<IRequestContext> _requestContextMock;
     private readonly GetOrderByIdUseCase _getOrderByIdUseCase;
     private readonly StartOrderUseCase _startOrderUseCase;
     private readonly AddProductToOrderUseCase _addProductToOrderUseCase;
@@ -34,10 +35,15 @@ public class OrderControllerTests
     {
         _orderDataSourceMock = new Mock<IOrderDataSource>();
         _productDataSourceMock = new Mock<IProductDataSource>();
+        _requestContextMock = new Mock<IRequestContext>();
+
+        // Configurar RequestContext como Admin por padrão para os testes existentes
+        _requestContextMock.Setup(x => x.IsAdmin).Returns(true);
 
         _getOrderByIdUseCase = new GetOrderByIdUseCase(
             _orderDataSourceMock.Object,
-            new GetOrderByIdPresenter());
+            new GetOrderByIdPresenter(),
+            _requestContextMock.Object);
 
         _startOrderUseCase = new StartOrderUseCase(
             _orderDataSourceMock.Object,
@@ -534,7 +540,7 @@ public class OrderControllerTests
 
         _orderDataSourceMock
             .Setup(x => x.AddAsync(It.IsAny<OrderDto>()))
-            .ThrowsAsync(new ArgumentException("Invalid customer"));
+            .ThrowsAsync(new FastFood.OrderHub.Application.Exceptions.BusinessException("Invalid customer"));
 
         // Act
         var result = await _controller.Start(input);

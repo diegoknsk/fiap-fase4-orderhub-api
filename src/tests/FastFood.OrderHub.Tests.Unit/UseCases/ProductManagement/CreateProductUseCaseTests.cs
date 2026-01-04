@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.ProductManagement;
@@ -84,12 +85,13 @@ public class CreateProductUseCaseTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _useCase.ExecuteAsync(input));
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Nome do produto não pode ser vazio.", exception.Message);
         _productDataSourceMock.Verify(x => x.AddAsync(It.IsAny<ProductDto>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_Should_Throw_Exception_When_Price_Is_Zero()
+    public async Task ExecuteAsync_Should_Throw_BusinessException_When_Price_Is_Zero()
     {
         // Arrange
         var input = new CreateProductInputModel
@@ -100,12 +102,13 @@ public class CreateProductUseCaseTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _useCase.ExecuteAsync(input));
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Preço do produto deve ser maior que zero.", exception.Message);
         _productDataSourceMock.Verify(x => x.AddAsync(It.IsAny<ProductDto>()), Times.Never);
     }
 
     [Fact]
-    public async Task ExecuteAsync_Should_Throw_Exception_When_Price_Is_Negative()
+    public async Task ExecuteAsync_Should_Throw_BusinessException_When_Price_Is_Negative()
     {
         // Arrange
         var input = new CreateProductInputModel
@@ -116,7 +119,8 @@ public class CreateProductUseCaseTests
         };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _useCase.ExecuteAsync(input));
+        var exception = await Assert.ThrowsAsync<BusinessException>(() => _useCase.ExecuteAsync(input));
+        Assert.Equal("Preço do produto deve ser maior que zero.", exception.Message);
         _productDataSourceMock.Verify(x => x.AddAsync(It.IsAny<ProductDto>()), Times.Never);
     }
 

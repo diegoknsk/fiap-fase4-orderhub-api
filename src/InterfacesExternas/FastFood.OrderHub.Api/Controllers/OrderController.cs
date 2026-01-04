@@ -46,7 +46,7 @@ public class OrderController(
     /// Obter pedido por ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    //[Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
+    [Authorize(AuthenticationSchemes = "Cognito,CustomerBearer")]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)

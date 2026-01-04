@@ -8,6 +8,7 @@ namespace FastFood.OrderHub.Application.Ports;
 public interface IOrderDataSource
 {
     Task<OrderDto?> GetByIdAsync(Guid id);
+    Task<OrderDto?> GetByIdForCustomerAsync(Guid orderId, Guid customerId);
     Task<List<OrderDto>> GetByCustomerIdAsync(Guid customerId);
     Task<List<OrderDto>> GetPagedAsync(int page, int pageSize, int? status = null);
     Task<List<OrderDto>> GetByStatusAsync(int status);
