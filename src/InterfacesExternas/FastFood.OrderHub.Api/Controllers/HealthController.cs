@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FastFood.OrderHub.Api.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class HealthController : ControllerBase
 {
     [HttpGet]
