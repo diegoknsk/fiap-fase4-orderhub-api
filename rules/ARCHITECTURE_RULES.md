@@ -217,6 +217,7 @@ Controllers são **adapters de transporte** (HTTP/API Gateway).
 - ❌ Criar ResponseModels diretamente (deve usar Presenters via UseCase)
 - ❌ Criar Presenters próprios (deve usar Presenters da Application)
 - ❌ Lógica de transformação complexa (deve estar no Presenter)
+- ❌ **Criar mensagens de erro de negócio** (mensagens devem vir das UseCases via BusinessException)
 
 ### Endpoints Customer
 
@@ -241,6 +242,8 @@ Controllers são **adapters de transporte** (HTTP/API Gateway).
 - UseCases obtêm **OutputModels** da execução
 - **UseCases são responsáveis por chamar o Presenter** para transformar OutputModel em ResponseModel
 - UseCases retornam **ResponseModels** (já transformados pelo Presenter)
+- **UseCases são responsáveis por definir mensagens de erro de negócio** - devem lançar `BusinessException` com mensagens claras ao invés de retornar `null` ou lançar exceções genéricas (`ArgumentException`, `InvalidOperationException`)
+- UseCases **NÃO devem retornar null** para casos de erro - devem lançar `BusinessException` com mensagem apropriada
 
 ### InputModels
 
@@ -273,6 +276,26 @@ Controllers são **adapters de transporte** (HTTP/API Gateway).
   - `ICognitoService` - autenticação via AWS Cognito
   - `IMessageBus` / `IEventPublisher` - publicação de eventos (se necessário)
 - Implementações concretas ficam na camada Infra
+
+### Tratamento de Erros de Negócio
+
+- **UseCases devem lançar `BusinessException`** para erros de negócio (validações, regras de domínio, entidades não encontradas)
+- **Controllers devem capturar `BusinessException`** e propagar a mensagem sem criar novas mensagens
+- **Mensagens de erro devem ser definidas nas UseCases**, não nos Controllers
+- Controllers apenas mapeiam `BusinessException` para códigos HTTP apropriados (400 BadRequest, 404 NotFound, etc.)
+- UseCases **NÃO devem retornar null** para casos de erro - devem lançar `BusinessException` com mensagem apropriada
+- Exemplo:
+  ```csharp
+  // UseCase
+  if (orderDto == null)
+      throw new BusinessException("Pedido não encontrado.");
+  
+  // Controller
+  catch (BusinessException ex)
+  {
+      return NotFound(ApiResponse<T>.Fail(ex.Message));
+  }
+  ```
 
 ### Facade (Opcional)
 

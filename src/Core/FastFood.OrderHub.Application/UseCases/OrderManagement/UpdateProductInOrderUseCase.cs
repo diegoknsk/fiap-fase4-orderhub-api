@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.OutputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -28,16 +29,16 @@ public class UpdateProductInOrderUseCase
         _presenter = presenter;
     }
 
-    public async Task<UpdateProductInOrderResponse?> ExecuteAsync(UpdateProductInOrderInputModel input)
+    public async Task<UpdateProductInOrderResponse> ExecuteAsync(UpdateProductInOrderInputModel input)
     {
         // Validar quantidade
         if (input.Quantity <= 0)
-            throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(input.Quantity));
+            throw new BusinessException("Quantidade deve ser maior que zero.");
 
         // Buscar pedido completo com Items
         var orderDto = await _orderDataSource.GetByIdAsync(input.OrderId);
         if (orderDto == null)
-            return null;
+            throw new BusinessException("Pedido não encontrado.");
 
         // Converter OrderDto para entidade de domínio Order
         var order = ConvertToDomainEntity(orderDto);
@@ -45,12 +46,12 @@ public class UpdateProductInOrderUseCase
         // Buscar OrderedProduct dentro do Order.OrderedProducts
         var orderedProduct = order.OrderedProducts.FirstOrDefault(op => op.Id == input.OrderedProductId);
         if (orderedProduct == null)
-            return null;
+            throw new BusinessException("Produto não encontrado no pedido.");
 
         // Buscar produto para obter informações atualizadas
         var productDto = await _productDataSource.GetByIdAsync(orderedProduct.ProductId);
         if (productDto == null)
-            throw new InvalidOperationException("Produto não encontrado.");
+            throw new BusinessException("Produto não encontrado.");
 
         // Criar entidade de domínio Product para OrderedProduct
         var product = new Product
@@ -115,14 +116,7 @@ public class UpdateProductInOrderUseCase
         // Salvar Order completo atualizado
         await _orderDataSource.UpdateAsync(orderDto);
 
-        // Criar OutputModel
-        var output = new UpdateProductInOrderOutputModel
-        {
-            OrderId = order.Id,
-            OrderedProductId = orderedProduct.Id,
-            TotalPrice = order.TotalPrice
-        };
-
+        var output = AdaptToOutputModel(order, orderedProduct);
         return _presenter.Present(output);
     }
 
@@ -190,6 +184,16 @@ public class UpdateProductInOrderUseCase
                     ProductBaseIngredientId = ci.ProductBaseIngredientId
                 }).ToList()
             }).ToList()
+        };
+    }
+
+    private UpdateProductInOrderOutputModel AdaptToOutputModel(Order order, OrderedProduct orderedProduct)
+    {
+        return new UpdateProductInOrderOutputModel
+        {
+            OrderId = order.Id,
+            OrderedProductId = orderedProduct.Id,
+            TotalPrice = order.TotalPrice
         };
     }
 }

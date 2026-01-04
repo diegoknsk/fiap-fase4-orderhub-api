@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.OutputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -25,12 +26,12 @@ public class RemoveProductFromOrderUseCase
         _presenter = presenter;
     }
 
-    public async Task<RemoveProductFromOrderResponse?> ExecuteAsync(RemoveProductFromOrderInputModel input)
+    public async Task<RemoveProductFromOrderResponse> ExecuteAsync(RemoveProductFromOrderInputModel input)
     {
         // Buscar pedido completo com Items
         var orderDto = await _orderDataSource.GetByIdAsync(input.OrderId);
         if (orderDto == null)
-            return null;
+            throw new BusinessException("Pedido não encontrado.");
 
         // Converter OrderDto para entidade de domínio Order
         var order = ConvertToDomainEntity(orderDto);
@@ -38,7 +39,7 @@ public class RemoveProductFromOrderUseCase
         // Verificar se OrderedProduct existe
         var orderedProduct = order.OrderedProducts.FirstOrDefault(op => op.Id == input.OrderedProductId);
         if (orderedProduct == null)
-            return null;
+            throw new BusinessException("Produto não encontrado no pedido.");
 
         // Remover produto usando método de domínio (recalcula TotalPrice automaticamente)
         order.RemoveProduct(input.OrderedProductId);
@@ -49,14 +50,7 @@ public class RemoveProductFromOrderUseCase
         // Salvar Order completo atualizado
         await _orderDataSource.UpdateAsync(orderDto);
 
-        // Criar OutputModel
-        var output = new RemoveProductFromOrderOutputModel
-        {
-            OrderId = order.Id,
-            OrderedProductId = input.OrderedProductId,
-            TotalPrice = order.TotalPrice
-        };
-
+        var output = AdaptToOutputModel(order, input.OrderedProductId);
         return _presenter.Present(output);
     }
 
@@ -124,6 +118,16 @@ public class RemoveProductFromOrderUseCase
                     ProductBaseIngredientId = ci.ProductBaseIngredientId
                 }).ToList()
             }).ToList()
+        };
+    }
+
+    private RemoveProductFromOrderOutputModel AdaptToOutputModel(Order order, Guid orderedProductId)
+    {
+        return new RemoveProductFromOrderOutputModel
+        {
+            OrderId = order.Id,
+            OrderedProductId = orderedProductId,
+            TotalPrice = order.TotalPrice
         };
     }
 }

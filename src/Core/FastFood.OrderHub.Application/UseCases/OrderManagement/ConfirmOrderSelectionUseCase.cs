@@ -1,4 +1,5 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.OutputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -25,23 +26,23 @@ public class ConfirmOrderSelectionUseCase
         _presenter = presenter;
     }
 
-    public async Task<ConfirmOrderSelectionResponse?> ExecuteAsync(ConfirmOrderSelectionInputModel input)
+    public async Task<ConfirmOrderSelectionResponse> ExecuteAsync(ConfirmOrderSelectionInputModel input)
     {
         // Buscar pedido completo com Items
         var orderDto = await _orderDataSource.GetByIdAsync(input.OrderId);
         if (orderDto == null)
-            return null;
+            throw new BusinessException("Pedido não encontrado.");
 
         // Converter OrderDto para entidade de domínio Order
         var order = ConvertToDomainEntity(orderDto);
 
         // Validar que o pedido tem itens
         if (!order.OrderedProducts.Any())
-            throw new InvalidOperationException("Não é possível confirmar um pedido sem itens.");
+            throw new BusinessException("Não é possível confirmar um pedido sem itens.");
 
         // Validar que o pedido está no status correto
         if (order.OrderStatus != EnumOrderStatus.Started)
-            throw new InvalidOperationException("Apenas pedidos com status 'Started' podem ser confirmados.");
+            throw new BusinessException("Apenas pedidos com status 'Started' podem ser confirmados.");
 
         // Finalizar seleção usando método de domínio
         order.FinalizeOrderSelection();
@@ -52,14 +53,7 @@ public class ConfirmOrderSelectionUseCase
         // Salvar Order atualizado
         await _orderDataSource.UpdateAsync(orderDto);
 
-        // Criar OutputModel
-        var output = new ConfirmOrderSelectionOutputModel
-        {
-            OrderId = order.Id,
-            OrderStatus = (int)order.OrderStatus,
-            TotalPrice = order.TotalPrice
-        };
-
+        var output = AdaptToOutputModel(order);
         return _presenter.Present(output);
     }
 
@@ -127,6 +121,16 @@ public class ConfirmOrderSelectionUseCase
                     ProductBaseIngredientId = ci.ProductBaseIngredientId
                 }).ToList()
             }).ToList()
+        };
+    }
+
+    private ConfirmOrderSelectionOutputModel AdaptToOutputModel(Order order)
+    {
+        return new ConfirmOrderSelectionOutputModel
+        {
+            OrderId = order.Id,
+            OrderStatus = (int)order.OrderStatus,
+            TotalPrice = order.TotalPrice
         };
     }
 }

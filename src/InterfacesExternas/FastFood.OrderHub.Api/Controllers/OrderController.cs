@@ -1,3 +1,4 @@
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.Models.Common;
 using FastFood.OrderHub.Application.Responses.OrderManagement;
@@ -12,39 +13,21 @@ namespace FastFood.OrderHub.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class OrderController : ControllerBase
+public class OrderController(
+    GetOrderByIdUseCase getOrderByIdUseCase,
+    StartOrderUseCase startOrderUseCase,
+    AddProductToOrderUseCase addProductToOrderUseCase,
+    UpdateProductInOrderUseCase updateProductInOrderUseCase,
+    RemoveProductFromOrderUseCase removeProductFromOrderUseCase,
+    ConfirmOrderSelectionUseCase confirmOrderSelectionUseCase,
+    GetPagedOrdersUseCase getPagedOrdersUseCase) : ControllerBase
 {
-    private readonly GetOrderByIdUseCase _getOrderByIdUseCase;
-    private readonly StartOrderUseCase _startOrderUseCase;
-    private readonly AddProductToOrderUseCase _addProductToOrderUseCase;
-    private readonly UpdateProductInOrderUseCase _updateProductInOrderUseCase;
-    private readonly RemoveProductFromOrderUseCase _removeProductFromOrderUseCase;
-    private readonly ConfirmOrderSelectionUseCase _confirmOrderSelectionUseCase;
-    private readonly GetPagedOrdersUseCase _getPagedOrdersUseCase;
-
-    public OrderController(
-        GetOrderByIdUseCase getOrderByIdUseCase,
-        StartOrderUseCase startOrderUseCase,
-        AddProductToOrderUseCase addProductToOrderUseCase,
-        UpdateProductInOrderUseCase updateProductInOrderUseCase,
-        RemoveProductFromOrderUseCase removeProductFromOrderUseCase,
-        ConfirmOrderSelectionUseCase confirmOrderSelectionUseCase,
-        GetPagedOrdersUseCase getPagedOrdersUseCase)
-    {
-        _getOrderByIdUseCase = getOrderByIdUseCase;
-        _startOrderUseCase = startOrderUseCase;
-        _addProductToOrderUseCase = addProductToOrderUseCase;
-        _updateProductInOrderUseCase = updateProductInOrderUseCase;
-        _removeProductFromOrderUseCase = removeProductFromOrderUseCase;
-        _confirmOrderSelectionUseCase = confirmOrderSelectionUseCase;
-        _getPagedOrdersUseCase = getPagedOrdersUseCase;
-    }
 
     /// <summary>
     /// Listar pedidos paginados
     /// </summary>
     [HttpGet]
-    //[Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
+    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<GetPagedOrdersResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] int? status = null)
     {
@@ -55,7 +38,7 @@ public class OrderController : ControllerBase
             Status = status
         };
 
-        var response = await _getPagedOrdersUseCase.ExecuteAsync(input);
+        var response = await getPagedOrdersUseCase.ExecuteAsync(input);
         return Ok(ApiResponse<GetPagedOrdersResponse>.Ok(response));
     }
 
@@ -63,25 +46,28 @@ public class OrderController : ControllerBase
     /// Obter pedido por ID
     /// </summary>
     [HttpGet("{id:guid}")]
-    [Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
+    //[Authorize(AuthenticationSchemes = "Cognito", Policy = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<GetOrderByIdResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var input = new GetOrderByIdInputModel { OrderId = id };
-        var response = await _getOrderByIdUseCase.ExecuteAsync(input);
-
-        if (response == null)
-            return NotFound(ApiResponse<GetOrderByIdResponse>.Fail("Pedido não encontrado."));
-
-        return Ok(ApiResponse<GetOrderByIdResponse>.Ok(response));
+        try
+        {
+            var input = new GetOrderByIdInputModel { OrderId = id };
+            var response = await getOrderByIdUseCase.ExecuteAsync(input);
+            return Ok(ApiResponse<GetOrderByIdResponse>.Ok(response));
+        }
+        catch (BusinessException ex)
+        {
+            return NotFound(ApiResponse<GetOrderByIdResponse>.Fail(ex.Message));
+        }
     }
 
     /// <summary>
     /// Iniciar novo pedido
     /// </summary>
     /// 
-    //[Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
+    [Authorize(AuthenticationSchemes = "CustomerBearer", Policy = "Customer")]
     [HttpPost("start")]
     [ProducesResponseType(typeof(ApiResponse<StartOrderResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<StartOrderResponse>), StatusCodes.Status400BadRequest)]
@@ -89,14 +75,10 @@ public class OrderController : ControllerBase
     {
         try
         {
-            var response = await _startOrderUseCase.ExecuteAsync(input);
+            var response = await startOrderUseCase.ExecuteAsync(input);
             return CreatedAtAction(nameof(GetById), new { id = response.OrderId }, ApiResponse<StartOrderResponse>.Ok(response, "Pedido iniciado com sucesso."));
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse<StartOrderResponse>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex)
+        catch (BusinessException ex)
         {
             return BadRequest(ApiResponse<StartOrderResponse>.Fail(ex.Message));
         }
@@ -114,19 +96,13 @@ public class OrderController : ControllerBase
     {
         try
         {
-            var response = await _addProductToOrderUseCase.ExecuteAsync(input);
-
-            if (response == null)
-                return NotFound(ApiResponse<AddProductToOrderResponse>.Fail("Pedido ou produto não encontrado."));
-
+            var response = await addProductToOrderUseCase.ExecuteAsync(input);
             return Ok(ApiResponse<AddProductToOrderResponse>.Ok(response, "Produto adicionado ao pedido com sucesso."));
         }
-        catch (ArgumentException ex)
+        catch (BusinessException ex)
         {
-            return BadRequest(ApiResponse<AddProductToOrderResponse>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex)
-        {
+            if (ex.Message.Contains("não encontrado"))
+                return NotFound(ApiResponse<AddProductToOrderResponse>.Fail(ex.Message));
             return BadRequest(ApiResponse<AddProductToOrderResponse>.Fail(ex.Message));
         }
     }
@@ -143,19 +119,13 @@ public class OrderController : ControllerBase
     {
         try
         {
-            var response = await _updateProductInOrderUseCase.ExecuteAsync(input);
-
-            if (response == null)
-                return NotFound(ApiResponse<UpdateProductInOrderResponse>.Fail("Pedido ou produto não encontrado."));
-
+            var response = await updateProductInOrderUseCase.ExecuteAsync(input);
             return Ok(ApiResponse<UpdateProductInOrderResponse>.Ok(response, "Produto atualizado no pedido com sucesso."));
         }
-        catch (ArgumentException ex)
+        catch (BusinessException ex)
         {
-            return BadRequest(ApiResponse<UpdateProductInOrderResponse>.Fail(ex.Message));
-        }
-        catch (InvalidOperationException ex)
-        {
+            if (ex.Message.Contains("não encontrado"))
+                return NotFound(ApiResponse<UpdateProductInOrderResponse>.Fail(ex.Message));
             return BadRequest(ApiResponse<UpdateProductInOrderResponse>.Fail(ex.Message));
         }
     }
@@ -169,12 +139,15 @@ public class OrderController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<RemoveProductFromOrderResponse>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveProduct([FromBody] RemoveProductFromOrderInputModel input)
     {
-        var response = await _removeProductFromOrderUseCase.ExecuteAsync(input);
-
-        if (response == null)
-            return NotFound(ApiResponse<RemoveProductFromOrderResponse>.Fail("Pedido ou produto não encontrado."));
-
-        return Ok(ApiResponse<RemoveProductFromOrderResponse>.Ok(response, "Produto removido do pedido com sucesso."));
+        try
+        {
+            var response = await removeProductFromOrderUseCase.ExecuteAsync(input);
+            return Ok(ApiResponse<RemoveProductFromOrderResponse>.Ok(response, "Produto removido do pedido com sucesso."));
+        }
+        catch (BusinessException ex)
+        {
+            return NotFound(ApiResponse<RemoveProductFromOrderResponse>.Fail(ex.Message));
+        }
     }
 
     /// <summary>
@@ -190,15 +163,13 @@ public class OrderController : ControllerBase
         try
         {
             var input = new ConfirmOrderSelectionInputModel { OrderId = id };
-            var response = await _confirmOrderSelectionUseCase.ExecuteAsync(input);
-
-            if (response == null)
-                return NotFound(ApiResponse<ConfirmOrderSelectionResponse>.Fail("Pedido não encontrado."));
-
+            var response = await confirmOrderSelectionUseCase.ExecuteAsync(input);
             return Ok(ApiResponse<ConfirmOrderSelectionResponse>.Ok(response, "Seleção do pedido confirmada com sucesso."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessException ex)
         {
+            if (ex.Message.Contains("não encontrado"))
+                return NotFound(ApiResponse<ConfirmOrderSelectionResponse>.Fail(ex.Message));
             return BadRequest(ApiResponse<ConfirmOrderSelectionResponse>.Fail(ex.Message));
         }
     }

@@ -1,3 +1,5 @@
+using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.OutputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -22,14 +24,20 @@ public class GetOrderByIdUseCase
         _presenter = presenter;
     }
 
-    public async Task<GetOrderByIdResponse?> ExecuteAsync(GetOrderByIdInputModel input)
+    public async Task<GetOrderByIdResponse> ExecuteAsync(GetOrderByIdInputModel input)
     {
         var orderDto = await _orderDataSource.GetByIdAsync(input.OrderId);
 
         if (orderDto == null)
-            return null;
+            throw new BusinessException("Pedido não encontrado.");
 
-        var output = new GetOrderByIdOutputModel
+        var output = AdaptToOutputModel(orderDto);
+        return _presenter.Present(output);
+    }
+
+    private GetOrderByIdOutputModel AdaptToOutputModel(DTOs.OrderDto orderDto)
+    {
+        return new GetOrderByIdOutputModel
         {
             OrderId = orderDto.Id,
             Code = orderDto.Code,
@@ -55,8 +63,6 @@ public class GetOrderByIdUseCase
                 }).ToList()
             }).ToList()
         };
-
-        return _presenter.Present(output);
     }
 }
 

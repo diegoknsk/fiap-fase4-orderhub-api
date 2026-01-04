@@ -57,8 +57,13 @@ public class StartOrderUseCase
         // Salvar no DataSource
         await _orderDataSource.AddAsync(orderDto);
 
-        // Criar OutputModel
-        var output = new StartOrderOutputModel
+        var output = AdaptToOutputModel(order);
+        return _presenter.Present(output);
+    }
+
+    private StartOrderOutputModel AdaptToOutputModel(Order order)
+    {
+        return new StartOrderOutputModel
         {
             OrderId = order.Id,
             Code = order.Code,
@@ -67,8 +72,6 @@ public class StartOrderUseCase
             OrderStatus = (int)order.OrderStatus,
             TotalPrice = order.TotalPrice
         };
-
-        return _presenter.Present(output);
     }
 }
 

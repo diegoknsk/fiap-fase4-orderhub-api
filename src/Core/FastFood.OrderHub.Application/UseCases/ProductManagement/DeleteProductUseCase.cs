@@ -1,3 +1,4 @@
+using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.ProductManagement;
 using FastFood.OrderHub.Application.OutputModels.ProductManagement;
 using FastFood.OrderHub.Application.Ports;
@@ -22,12 +23,12 @@ public class DeleteProductUseCase
         _presenter = presenter;
     }
 
-    public async Task<DeleteProductResponse?> ExecuteAsync(DeleteProductInputModel input)
+    public async Task<DeleteProductResponse> ExecuteAsync(DeleteProductInputModel input)
     {
         // Verificar se produto existe
         var exists = await _productDataSource.ExistsAsync(input.ProductId);
         if (!exists)
-            return null;
+            throw new BusinessException("Produto não encontrado.");
 
         // Remover produto (soft delete)
         await _productDataSource.RemoveAsync(input.ProductId);
