@@ -9,6 +9,7 @@ using FastFood.OrderHub.Application.UseCases.OrderManagement;
 using FastFood.OrderHub.Domain.Common.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -63,9 +64,28 @@ public class OrderControllerTests
             _orderDataSourceMock.Object,
             new RemoveProductFromOrderPresenter());
 
+        var paymentServiceClientMock = new Mock<IPaymentServiceClient>();
+        var loggerMock = new Mock<ILogger<ConfirmOrderSelectionUseCase>>();
+        
+        // Configurar RequestContext para retornar token Bearer
+        _requestContextMock.Setup(x => x.GetBearerToken()).Returns("test-bearer-token");
+        
+        // Mock PaymentServiceClient para retornar sucesso
+        paymentServiceClientMock
+            .Setup(x => x.CreatePaymentAsync(It.IsAny<FastFood.OrderHub.Application.DTOs.Payment.CreatePaymentRequest>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FastFood.OrderHub.Application.DTOs.Payment.CreatePaymentResponse
+            {
+                PaymentId = Guid.NewGuid(),
+                Status = "Created",
+                CreatedAt = DateTime.UtcNow
+            });
+
         _confirmOrderSelectionUseCase = new ConfirmOrderSelectionUseCase(
             _orderDataSourceMock.Object,
-            new ConfirmOrderSelectionPresenter());
+            new ConfirmOrderSelectionPresenter(),
+            paymentServiceClientMock.Object,
+            _requestContextMock.Object,
+            loggerMock.Object);
 
         _getPagedOrdersUseCase = new GetPagedOrdersUseCase(
             _orderDataSourceMock.Object,
@@ -353,6 +373,8 @@ public class OrderControllerTests
         _orderDataSourceMock
             .Setup(x => x.UpdateAsync(It.IsAny<OrderDto>()))
             .Returns(Task.CompletedTask);
+
+        // O PaymentServiceClient já está mockado no construtor do teste
 
         // Act
         var result = await _controller.ConfirmSelection(orderId);

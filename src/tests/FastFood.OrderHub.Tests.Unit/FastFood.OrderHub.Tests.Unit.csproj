@@ -30,6 +30,7 @@
     <ProjectReference Include="..\..\Core\FastFood.OrderHub.Application\FastFood.OrderHub.Application.csproj" />
     <ProjectReference Include="..\..\InterfacesExternas\FastFood.OrderHub.Api\FastFood.OrderHub.Api.csproj" />
     <ProjectReference Include="..\..\Infra\FastFood.OrderHub.Infra.Persistence\FastFood.OrderHub.Infra.Persistence.csproj" />
+    <ProjectReference Include="..\..\Infra\FastFood.OrderHub.Infra\FastFood.OrderHub.Infra.csproj" />
   </ItemGroup>
 
 </Project>

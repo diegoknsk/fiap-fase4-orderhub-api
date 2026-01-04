@@ -14,4 +14,10 @@ public interface IRequestContext
     /// ID do cliente autenticado (CustomerBearer)
     /// </summary>
     string? CustomerId { get; }
+
+    /// <summary>
+    /// Obtém o token Bearer do header Authorization da requisição
+    /// </summary>
+    /// <returns>Token Bearer sem o prefixo "Bearer ", ou null se não estiver presente</returns>
+    string? GetBearerToken();
 }

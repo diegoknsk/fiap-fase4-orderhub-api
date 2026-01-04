@@ -1,12 +1,15 @@
 using FastFood.OrderHub.Application.DTOs;
+using FastFood.OrderHub.Application.DTOs.Payment;
 using FastFood.OrderHub.Application.Exceptions;
 using FastFood.OrderHub.Application.InputModels.OrderManagement;
 using FastFood.OrderHub.Application.OutputModels.OrderManagement;
 using FastFood.OrderHub.Application.Ports;
 using FastFood.OrderHub.Application.Presenters.OrderManagement;
 using FastFood.OrderHub.Application.Responses.OrderManagement;
+using FastFood.OrderHub.Application.Services;
 using FastFood.OrderHub.Domain.Common.Enums;
 using FastFood.OrderHub.Domain.Entities.OrderManagement;
+using Microsoft.Extensions.Logging;
 
 namespace FastFood.OrderHub.Application.UseCases.OrderManagement;
 
@@ -17,13 +20,22 @@ public class ConfirmOrderSelectionUseCase
 {
     private readonly IOrderDataSource _orderDataSource;
     private readonly ConfirmOrderSelectionPresenter _presenter;
+    private readonly IPaymentServiceClient _paymentServiceClient;
+    private readonly IRequestContext _requestContext;
+    private readonly ILogger<ConfirmOrderSelectionUseCase> _logger;
 
     public ConfirmOrderSelectionUseCase(
         IOrderDataSource orderDataSource,
-        ConfirmOrderSelectionPresenter presenter)
+        ConfirmOrderSelectionPresenter presenter,
+        IPaymentServiceClient paymentServiceClient,
+        IRequestContext requestContext,
+        ILogger<ConfirmOrderSelectionUseCase> logger)
     {
         _orderDataSource = orderDataSource;
         _presenter = presenter;
+        _paymentServiceClient = paymentServiceClient;
+        _requestContext = requestContext;
+        _logger = logger;
     }
 
     public async Task<ConfirmOrderSelectionResponse> ExecuteAsync(ConfirmOrderSelectionInputModel input)
@@ -44,17 +56,99 @@ public class ConfirmOrderSelectionUseCase
         if (order.OrderStatus != EnumOrderStatus.Started)
             throw new BusinessException("Apenas pedidos com status 'Started' podem ser confirmados.");
 
+        // Guardar status original para possível rollback
+        var originalStatus = order.OrderStatus;
+
         // Finalizar seleção usando método de domínio
         order.FinalizeOrderSelection();
 
         // Converter entidade de domínio de volta para DTO
         orderDto = ConvertToDto(order, orderDto.OrderSource);
 
-        // Salvar Order atualizado
+        // Salvar Order atualizado (PRIORIDADE: salvar antes de chamar PayStream)
         await _orderDataSource.UpdateAsync(orderDto);
+
+        // Tentar criar pagamento no PayStream (após salvar pedido)
+        try
+        {
+            await TryCreatePaymentInPayStreamAsync(order);
+        }
+        catch (BusinessException)
+        {
+            // Se falhar, reverter status para Started e salvar novamente
+            _logger.LogWarning(
+                "Revertendo status do pedido {OrderId} de {CurrentStatus} para {OriginalStatus} devido a falha no PayStream",
+                order.Id, order.OrderStatus, originalStatus);
+            
+            order.UpdateStatus(originalStatus);
+            orderDto = ConvertToDto(order, orderDto.OrderSource);
+            await _orderDataSource.UpdateAsync(orderDto);
+            
+            // Re-lançar a exceção
+            throw;
+        }
 
         var output = AdaptToOutputModel(order);
         return _presenter.Present(output);
+    }
+
+    private async Task TryCreatePaymentInPayStreamAsync(Order order)
+    {
+        try
+        {
+            var bearerToken = _requestContext.GetBearerToken();
+            if (string.IsNullOrWhiteSpace(bearerToken))
+            {
+                _logger.LogWarning(
+                    "Bearer token não encontrado na requisição. Pagamento não será criado no PayStream para pedido {OrderId}",
+                    order.Id);
+                return;
+            }
+
+            // Construir snapshot do pedido (sem PII)
+            var snapshot = OrderSnapshotBuilder.BuildFromOrder(order);
+            
+            // Validar que snapshot não está vazio
+            if (snapshot.Items == null || !snapshot.Items.Any())
+            {
+                _logger.LogWarning(
+                    "Snapshot do pedido {OrderId} está vazio ou sem itens. Pagamento não será criado no PayStream",
+                    order.Id);
+                return;
+            }
+
+            var paymentRequest = new CreatePaymentRequest
+            {
+                OrderId = order.Id,
+                TotalAmount = order.TotalPrice,
+                OrderSnapshot = snapshot
+            };
+
+            await _paymentServiceClient.CreatePaymentAsync(paymentRequest, bearerToken);
+            _logger.LogInformation(
+                "Pagamento criado com sucesso no PayStream para pedido {OrderId}",
+                order.Id);
+        }
+        catch (HttpRequestException ex)
+        {
+            // Logar erro detalhadamente
+            _logger.LogError(ex,
+                "Erro ao criar pagamento no PayStream para pedido {OrderId}. StatusCode: {StatusCode}",
+                order.Id, ex.Data.Contains("StatusCode") ? ex.Data["StatusCode"] : "Unknown");
+            
+            // Lançar exceção para que o UseCase possa reverter o status
+            throw new BusinessException("Erro ao iniciar pagamento. Tente novamente mais tarde.");
+        }
+        catch (Exception ex)
+        {
+            // Logar erro inesperado
+            _logger.LogError(ex,
+                "Erro inesperado ao criar pagamento no PayStream para pedido {OrderId}",
+                order.Id);
+            
+            // Lançar exceção para que o UseCase possa reverter o status
+            throw new BusinessException("Erro ao iniciar pagamento. Tente novamente mais tarde.");
+        }
     }
 
     private Order ConvertToDomainEntity(OrderDto dto)

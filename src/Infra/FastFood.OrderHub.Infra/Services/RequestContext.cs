@@ -56,4 +56,22 @@ public class RequestContext : IRequestContext
             return subClaim;
         }
     }
+
+    public string? GetBearerToken()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null)
+            return null;
+
+        // Extrair token do header Authorization
+        var authHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(authHeader))
+            return null;
+
+        // Remover prefixo "Bearer " se presente
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return authHeader.Substring(7);
+
+        return authHeader;
+    }
 }
