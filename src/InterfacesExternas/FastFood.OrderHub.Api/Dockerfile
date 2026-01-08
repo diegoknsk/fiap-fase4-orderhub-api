@@ -32,9 +32,9 @@ COPY --from=build /app/publish .
 RUN chown -R 1001:1001 /app
 USER 1001:1001
 
-ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_URLS=http://+:8080
 
-EXPOSE 80
+EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "FastFood.OrderHub.Api.dll"]
 
