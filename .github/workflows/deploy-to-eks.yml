@@ -118,6 +118,11 @@ jobs:
         kubectl version --client
     
     - name: Update ConfigMap
+      env:
+        COGNITO_REGION: ${{ secrets.COGNITO__REGION }}
+        JWT_ISSUER: ${{ secrets.JWT__ISSUER }}
+        JWT_AUDIENCE: ${{ secrets.JWT__AUDIENCE }}
+        PAYMENT_BASE_URL: ${{ secrets.PAYMENT_SERVICE__BASE_URL }}
       run: |
         echo "Updating ConfigMap orderhub-config..."
         
@@ -128,13 +133,9 @@ jobs:
         EXISTING_PAYMENT_BASE_URL=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.PaymentService__BaseUrl}' 2>/dev/null || echo "")
         
         # Usar secret do GitHub se fornecido, senão usar valor existente, senão usar padrão
-        COGNITO_REGION="${{ secrets.COGNITO__REGION }}"
         COGNITO_REGION=${COGNITO_REGION:-${EXISTING_COGNITO_REGION:-us-east-1}}
-        JWT_ISSUER="${{ secrets.JWT__ISSUER }}"
         JWT_ISSUER=${JWT_ISSUER:-${EXISTING_JWT_ISSUER:-FastFood.Auth}}
-        JWT_AUDIENCE="${{ secrets.JWT__AUDIENCE }}"
         JWT_AUDIENCE=${JWT_AUDIENCE:-${EXISTING_JWT_AUDIENCE:-FastFood.API}}
-        PAYMENT_BASE_URL="${{ secrets.PAYMENT_SERVICE__BASE_URL }}"
         PAYMENT_BASE_URL=${PAYMENT_BASE_URL:-${EXISTING_PAYMENT_BASE_URL:-https://localhost:7088/}}
         
         kubectl create configmap orderhub-config \
@@ -150,6 +151,15 @@ jobs:
         echo "ConfigMap updated successfully"
     
     - name: Update Secret
+      env:
+        COGNITO_USERPOOLID: ${{ secrets.COGNITO__USERPOOLID }}
+        COGNITO_CLIENTID: ${{ secrets.COGNITO__CLIENTID }}
+        JWT_SECRET_KEY: ${{ secrets.JWT__SECRET_KEY }}
+        DYNAMODB_ACCESS_KEY: ${{ secrets.DYNAMODB__ACCESS_KEY }}
+        DYNAMODB_SECRET_KEY: ${{ secrets.DYNAMODB__SECRET_KEY }}
+        DYNAMODB_SESSION_TOKEN: ${{ secrets.DYNAMODB__SESSION_TOKEN }}
+        DYNAMODB_REGION: ${{ secrets.DYNAMODB__REGION }}
+        DYNAMODB_SERVICE_URL: ${{ secrets.DYNAMODB__SERVICE_URL }}
       run: |
         echo "Updating Secret orderhub-secrets..."
         
@@ -164,21 +174,13 @@ jobs:
         EXISTING_DYNAMODB_SERVICE_URL=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__ServiceUrl}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
         
         # Usar secret do GitHub se fornecido, senão usar valor existente
-        COGNITO_USERPOOLID="${{ secrets.COGNITO__USERPOOLID }}"
         COGNITO_USERPOOLID=${COGNITO_USERPOOLID:-${EXISTING_COGNITO_USERPOOLID}}
-        COGNITO_CLIENTID="${{ secrets.COGNITO__CLIENTID }}"
         COGNITO_CLIENTID=${COGNITO_CLIENTID:-${EXISTING_COGNITO_CLIENTID}}
-        JWT_SECRET_KEY="${{ secrets.JWT__SECRET_KEY }}"
         JWT_SECRET_KEY=${JWT_SECRET_KEY:-${EXISTING_JWT_SECRET_KEY}}
-        DYNAMODB_ACCESS_KEY="${{ secrets.DYNAMODB__ACCESS_KEY }}"
         DYNAMODB_ACCESS_KEY=${DYNAMODB_ACCESS_KEY:-${EXISTING_DYNAMODB_ACCESS_KEY}}
-        DYNAMODB_SECRET_KEY="${{ secrets.DYNAMODB__SECRET_KEY }}"
         DYNAMODB_SECRET_KEY=${DYNAMODB_SECRET_KEY:-${EXISTING_DYNAMODB_SECRET_KEY}}
-        DYNAMODB_SESSION_TOKEN="${{ secrets.DYNAMODB__SESSION_TOKEN }}"
         DYNAMODB_SESSION_TOKEN=${DYNAMODB_SESSION_TOKEN:-${EXISTING_DYNAMODB_SESSION_TOKEN}}
-        DYNAMODB_REGION="${{ secrets.DYNAMODB__REGION }}"
         DYNAMODB_REGION=${DYNAMODB_REGION:-${EXISTING_DYNAMODB_REGION:-us-east-1}}
-        DYNAMODB_SERVICE_URL="${{ secrets.DYNAMODB__SERVICE_URL }}"
         DYNAMODB_SERVICE_URL=${DYNAMODB_SERVICE_URL:-${EXISTING_DYNAMODB_SERVICE_URL}}
         
         kubectl create secret generic orderhub-secrets \
@@ -353,6 +355,11 @@ jobs:
         kubectl version --client
     
     - name: Update ConfigMap
+      env:
+        COGNITO_REGION: ${{ secrets.COGNITO__REGION }}
+        JWT_ISSUER: ${{ secrets.JWT__ISSUER }}
+        JWT_AUDIENCE: ${{ secrets.JWT__AUDIENCE }}
+        PAYMENT_BASE_URL: ${{ secrets.PAYMENT_SERVICE__BASE_URL }}
       run: |
         echo "Updating ConfigMap orderhub-config..."
         
@@ -363,13 +370,9 @@ jobs:
         EXISTING_PAYMENT_BASE_URL=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.PaymentService__BaseUrl}' 2>/dev/null || echo "")
         
         # Usar secret do GitHub se fornecido, senão usar valor existente, senão usar padrão
-        COGNITO_REGION="${{ secrets.COGNITO__REGION }}"
         COGNITO_REGION=${COGNITO_REGION:-${EXISTING_COGNITO_REGION:-us-east-1}}
-        JWT_ISSUER="${{ secrets.JWT__ISSUER }}"
         JWT_ISSUER=${JWT_ISSUER:-${EXISTING_JWT_ISSUER:-FastFood.Auth}}
-        JWT_AUDIENCE="${{ secrets.JWT__AUDIENCE }}"
         JWT_AUDIENCE=${JWT_AUDIENCE:-${EXISTING_JWT_AUDIENCE:-FastFood.API}}
-        PAYMENT_BASE_URL="${{ secrets.PAYMENT_SERVICE__BASE_URL }}"
         PAYMENT_BASE_URL=${PAYMENT_BASE_URL:-${EXISTING_PAYMENT_BASE_URL:-https://localhost:7088/}}
         
         kubectl create configmap orderhub-config \
@@ -385,6 +388,15 @@ jobs:
         echo "ConfigMap updated successfully"
     
     - name: Update Secret
+      env:
+        COGNITO_USERPOOLID: ${{ secrets.COGNITO__USERPOOLID }}
+        COGNITO_CLIENTID: ${{ secrets.COGNITO__CLIENTID }}
+        JWT_SECRET_KEY: ${{ secrets.JWT__SECRET_KEY }}
+        DYNAMODB_ACCESS_KEY: ${{ secrets.DYNAMODB__ACCESS_KEY }}
+        DYNAMODB_SECRET_KEY: ${{ secrets.DYNAMODB__SECRET_KEY }}
+        DYNAMODB_SESSION_TOKEN: ${{ secrets.DYNAMODB__SESSION_TOKEN }}
+        DYNAMODB_REGION: ${{ secrets.DYNAMODB__REGION }}
+        DYNAMODB_SERVICE_URL: ${{ secrets.DYNAMODB__SERVICE_URL }}
       run: |
         echo "Updating Secret orderhub-secrets..."
         
@@ -399,21 +411,13 @@ jobs:
         EXISTING_DYNAMODB_SERVICE_URL=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__ServiceUrl}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
         
         # Usar secret do GitHub se fornecido, senão usar valor existente
-        COGNITO_USERPOOLID="${{ secrets.COGNITO__USERPOOLID }}"
         COGNITO_USERPOOLID=${COGNITO_USERPOOLID:-${EXISTING_COGNITO_USERPOOLID}}
-        COGNITO_CLIENTID="${{ secrets.COGNITO__CLIENTID }}"
         COGNITO_CLIENTID=${COGNITO_CLIENTID:-${EXISTING_COGNITO_CLIENTID}}
-        JWT_SECRET_KEY="${{ secrets.JWT__SECRET_KEY }}"
         JWT_SECRET_KEY=${JWT_SECRET_KEY:-${EXISTING_JWT_SECRET_KEY}}
-        DYNAMODB_ACCESS_KEY="${{ secrets.DYNAMODB__ACCESS_KEY }}"
         DYNAMODB_ACCESS_KEY=${DYNAMODB_ACCESS_KEY:-${EXISTING_DYNAMODB_ACCESS_KEY}}
-        DYNAMODB_SECRET_KEY="${{ secrets.DYNAMODB__SECRET_KEY }}"
         DYNAMODB_SECRET_KEY=${DYNAMODB_SECRET_KEY:-${EXISTING_DYNAMODB_SECRET_KEY}}
-        DYNAMODB_SESSION_TOKEN="${{ secrets.DYNAMODB__SESSION_TOKEN }}"
         DYNAMODB_SESSION_TOKEN=${DYNAMODB_SESSION_TOKEN:-${EXISTING_DYNAMODB_SESSION_TOKEN}}
-        DYNAMODB_REGION="${{ secrets.DYNAMODB__REGION }}"
         DYNAMODB_REGION=${DYNAMODB_REGION:-${EXISTING_DYNAMODB_REGION:-us-east-1}}
-        DYNAMODB_SERVICE_URL="${{ secrets.DYNAMODB__SERVICE_URL }}"
         DYNAMODB_SERVICE_URL=${DYNAMODB_SERVICE_URL:-${EXISTING_DYNAMODB_SERVICE_URL}}
         
         kubectl create secret generic orderhub-secrets \
