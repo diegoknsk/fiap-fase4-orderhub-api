@@ -117,6 +117,84 @@ jobs:
         aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
         kubectl version --client
     
+    - name: Update ConfigMap
+      env:
+        COGNITO_REGION: ${{ secrets.COGNITO__REGION }}
+        JWT_ISSUER: ${{ secrets.JWT__ISSUER }}
+        JWT_AUDIENCE: ${{ secrets.JWT__AUDIENCE }}
+        PAYMENT_BASE_URL: ${{ secrets.PAYMENT_SERVICE__BASE_URL }}
+      run: |
+        echo "Updating ConfigMap orderhub-config..."
+        
+        # Ler valores existentes do ConfigMap (se existir)
+        EXISTING_COGNITO_REGION=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.Authentication__Cognito__Region}' 2>/dev/null || echo "")
+        EXISTING_JWT_ISSUER=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.JwtCustomer__Issuer}' 2>/dev/null || echo "")
+        EXISTING_JWT_AUDIENCE=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.JwtCustomer__Audience}' 2>/dev/null || echo "")
+        EXISTING_PAYMENT_BASE_URL=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.PaymentService__BaseUrl}' 2>/dev/null || echo "")
+        
+        # Usar secret do GitHub se fornecido, senão usar valor existente, senão usar padrão
+        COGNITO_REGION=${COGNITO_REGION:-${EXISTING_COGNITO_REGION:-us-east-1}}
+        JWT_ISSUER=${JWT_ISSUER:-${EXISTING_JWT_ISSUER:-FastFood.Auth}}
+        JWT_AUDIENCE=${JWT_AUDIENCE:-${EXISTING_JWT_AUDIENCE:-FastFood.API}}
+        PAYMENT_BASE_URL=${PAYMENT_BASE_URL:-${EXISTING_PAYMENT_BASE_URL:-https://localhost:7088/}}
+        
+        kubectl create configmap orderhub-config \
+          --from-literal=Authentication__Cognito__Region=${COGNITO_REGION} \
+          --from-literal=Authentication__Cognito__ClockSkewMinutes=5 \
+          --from-literal=JwtCustomer__Issuer=${JWT_ISSUER} \
+          --from-literal=JwtCustomer__Audience=${JWT_AUDIENCE} \
+          --from-literal=PaymentService__BaseUrl=${PAYMENT_BASE_URL} \
+          --from-literal=PaymentService__TimeoutSeconds=30 \
+          --from-literal=PaymentService__RetryEnabled=false \
+          --from-literal=PaymentService__RetryCount=1 \
+          --dry-run=client -o yaml | kubectl apply -f - -n ${{ env.KUBERNETES_NAMESPACE }}
+        echo "ConfigMap updated successfully"
+    
+    - name: Update Secret
+      env:
+        COGNITO_USERPOOLID: ${{ secrets.COGNITO__USERPOOLID }}
+        COGNITO_CLIENTID: ${{ secrets.COGNITO__CLIENTID }}
+        JWT_SECRET_KEY: ${{ secrets.JWT__SECRET_KEY }}
+        DYNAMODB_ACCESS_KEY: ${{ secrets.DYNAMODB__ACCESS_KEY }}
+        DYNAMODB_SECRET_KEY: ${{ secrets.DYNAMODB__SECRET_KEY }}
+        DYNAMODB_SESSION_TOKEN: ${{ secrets.DYNAMODB__SESSION_TOKEN }}
+        DYNAMODB_REGION: ${{ secrets.DYNAMODB__REGION }}
+        DYNAMODB_SERVICE_URL: ${{ secrets.DYNAMODB__SERVICE_URL }}
+      run: |
+        echo "Updating Secret orderhub-secrets..."
+        
+        # Ler valores existentes do Secret (se existir)
+        EXISTING_COGNITO_USERPOOLID=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.Authentication__Cognito__UserPoolId}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_COGNITO_CLIENTID=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.Authentication__Cognito__ClientId}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_JWT_SECRET_KEY=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.JwtCustomer__SecretKey}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_ACCESS_KEY=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__AccessKey}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_SECRET_KEY=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__SecretKey}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_SESSION_TOKEN=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__SessionToken}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_REGION=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__Region}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_SERVICE_URL=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__ServiceUrl}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        
+        # Usar secret do GitHub se fornecido, senão usar valor existente
+        COGNITO_USERPOOLID=${COGNITO_USERPOOLID:-${EXISTING_COGNITO_USERPOOLID}}
+        COGNITO_CLIENTID=${COGNITO_CLIENTID:-${EXISTING_COGNITO_CLIENTID}}
+        JWT_SECRET_KEY=${JWT_SECRET_KEY:-${EXISTING_JWT_SECRET_KEY}}
+        DYNAMODB_ACCESS_KEY=${DYNAMODB_ACCESS_KEY:-${EXISTING_DYNAMODB_ACCESS_KEY}}
+        DYNAMODB_SECRET_KEY=${DYNAMODB_SECRET_KEY:-${EXISTING_DYNAMODB_SECRET_KEY}}
+        DYNAMODB_SESSION_TOKEN=${DYNAMODB_SESSION_TOKEN:-${EXISTING_DYNAMODB_SESSION_TOKEN}}
+        DYNAMODB_REGION=${DYNAMODB_REGION:-${EXISTING_DYNAMODB_REGION:-us-east-1}}
+        DYNAMODB_SERVICE_URL=${DYNAMODB_SERVICE_URL:-${EXISTING_DYNAMODB_SERVICE_URL}}
+        
+        kubectl create secret generic orderhub-secrets \
+          --from-literal=Authentication__Cognito__UserPoolId=${COGNITO_USERPOOLID} \
+          --from-literal=Authentication__Cognito__ClientId=${COGNITO_CLIENTID} \
+          --from-literal=JwtCustomer__SecretKey=${JWT_SECRET_KEY} \
+          --from-literal=DynamoDb__AccessKey=${DYNAMODB_ACCESS_KEY} \
+          --from-literal=DynamoDb__SecretKey=${DYNAMODB_SECRET_KEY} \
+          --from-literal=DynamoDb__SessionToken=${DYNAMODB_SESSION_TOKEN} \
+          --from-literal=DynamoDb__Region=${DYNAMODB_REGION} \
+          --from-literal=DynamoDb__ServiceUrl=${DYNAMODB_SERVICE_URL} \
+          --dry-run=client -o yaml | kubectl apply -f - -n ${{ env.KUBERNETES_NAMESPACE }}
+        echo "Secret updated successfully"
+    
     - name: Update API deployment
       run: |
         echo "Updating ${DEPLOYMENT_NAME} deployment with new image..."
@@ -275,6 +353,84 @@ jobs:
       run: |
         aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
         kubectl version --client
+    
+    - name: Update ConfigMap
+      env:
+        COGNITO_REGION: ${{ secrets.COGNITO__REGION }}
+        JWT_ISSUER: ${{ secrets.JWT__ISSUER }}
+        JWT_AUDIENCE: ${{ secrets.JWT__AUDIENCE }}
+        PAYMENT_BASE_URL: ${{ secrets.PAYMENT_SERVICE__BASE_URL }}
+      run: |
+        echo "Updating ConfigMap orderhub-config..."
+        
+        # Ler valores existentes do ConfigMap (se existir)
+        EXISTING_COGNITO_REGION=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.Authentication__Cognito__Region}' 2>/dev/null || echo "")
+        EXISTING_JWT_ISSUER=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.JwtCustomer__Issuer}' 2>/dev/null || echo "")
+        EXISTING_JWT_AUDIENCE=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.JwtCustomer__Audience}' 2>/dev/null || echo "")
+        EXISTING_PAYMENT_BASE_URL=$(kubectl get configmap orderhub-config -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.PaymentService__BaseUrl}' 2>/dev/null || echo "")
+        
+        # Usar secret do GitHub se fornecido, senão usar valor existente, senão usar padrão
+        COGNITO_REGION=${COGNITO_REGION:-${EXISTING_COGNITO_REGION:-us-east-1}}
+        JWT_ISSUER=${JWT_ISSUER:-${EXISTING_JWT_ISSUER:-FastFood.Auth}}
+        JWT_AUDIENCE=${JWT_AUDIENCE:-${EXISTING_JWT_AUDIENCE:-FastFood.API}}
+        PAYMENT_BASE_URL=${PAYMENT_BASE_URL:-${EXISTING_PAYMENT_BASE_URL:-https://localhost:7088/}}
+        
+        kubectl create configmap orderhub-config \
+          --from-literal=Authentication__Cognito__Region=${COGNITO_REGION} \
+          --from-literal=Authentication__Cognito__ClockSkewMinutes=5 \
+          --from-literal=JwtCustomer__Issuer=${JWT_ISSUER} \
+          --from-literal=JwtCustomer__Audience=${JWT_AUDIENCE} \
+          --from-literal=PaymentService__BaseUrl=${PAYMENT_BASE_URL} \
+          --from-literal=PaymentService__TimeoutSeconds=30 \
+          --from-literal=PaymentService__RetryEnabled=false \
+          --from-literal=PaymentService__RetryCount=1 \
+          --dry-run=client -o yaml | kubectl apply -f - -n ${{ env.KUBERNETES_NAMESPACE }}
+        echo "ConfigMap updated successfully"
+    
+    - name: Update Secret
+      env:
+        COGNITO_USERPOOLID: ${{ secrets.COGNITO__USERPOOLID }}
+        COGNITO_CLIENTID: ${{ secrets.COGNITO__CLIENTID }}
+        JWT_SECRET_KEY: ${{ secrets.JWT__SECRET_KEY }}
+        DYNAMODB_ACCESS_KEY: ${{ secrets.DYNAMODB__ACCESS_KEY }}
+        DYNAMODB_SECRET_KEY: ${{ secrets.DYNAMODB__SECRET_KEY }}
+        DYNAMODB_SESSION_TOKEN: ${{ secrets.DYNAMODB__SESSION_TOKEN }}
+        DYNAMODB_REGION: ${{ secrets.DYNAMODB__REGION }}
+        DYNAMODB_SERVICE_URL: ${{ secrets.DYNAMODB__SERVICE_URL }}
+      run: |
+        echo "Updating Secret orderhub-secrets..."
+        
+        # Ler valores existentes do Secret (se existir)
+        EXISTING_COGNITO_USERPOOLID=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.Authentication__Cognito__UserPoolId}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_COGNITO_CLIENTID=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.Authentication__Cognito__ClientId}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_JWT_SECRET_KEY=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.JwtCustomer__SecretKey}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_ACCESS_KEY=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__AccessKey}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_SECRET_KEY=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__SecretKey}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_SESSION_TOKEN=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__SessionToken}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_REGION=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__Region}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        EXISTING_DYNAMODB_SERVICE_URL=$(kubectl get secret orderhub-secrets -n ${{ env.KUBERNETES_NAMESPACE }} -o jsonpath='{.data.DynamoDb__ServiceUrl}' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+        
+        # Usar secret do GitHub se fornecido, senão usar valor existente
+        COGNITO_USERPOOLID=${COGNITO_USERPOOLID:-${EXISTING_COGNITO_USERPOOLID}}
+        COGNITO_CLIENTID=${COGNITO_CLIENTID:-${EXISTING_COGNITO_CLIENTID}}
+        JWT_SECRET_KEY=${JWT_SECRET_KEY:-${EXISTING_JWT_SECRET_KEY}}
+        DYNAMODB_ACCESS_KEY=${DYNAMODB_ACCESS_KEY:-${EXISTING_DYNAMODB_ACCESS_KEY}}
+        DYNAMODB_SECRET_KEY=${DYNAMODB_SECRET_KEY:-${EXISTING_DYNAMODB_SECRET_KEY}}
+        DYNAMODB_SESSION_TOKEN=${DYNAMODB_SESSION_TOKEN:-${EXISTING_DYNAMODB_SESSION_TOKEN}}
+        DYNAMODB_REGION=${DYNAMODB_REGION:-${EXISTING_DYNAMODB_REGION:-us-east-1}}
+        DYNAMODB_SERVICE_URL=${DYNAMODB_SERVICE_URL:-${EXISTING_DYNAMODB_SERVICE_URL}}
+        
+        kubectl create secret generic orderhub-secrets \
+          --from-literal=Authentication__Cognito__UserPoolId=${COGNITO_USERPOOLID} \
+          --from-literal=Authentication__Cognito__ClientId=${COGNITO_CLIENTID} \
+          --from-literal=JwtCustomer__SecretKey=${JWT_SECRET_KEY} \
+          --from-literal=DynamoDb__AccessKey=${DYNAMODB_ACCESS_KEY} \
+          --from-literal=DynamoDb__SecretKey=${DYNAMODB_SECRET_KEY} \
+          --from-literal=DynamoDb__SessionToken=${DYNAMODB_SESSION_TOKEN} \
+          --from-literal=DynamoDb__Region=${DYNAMODB_REGION} \
+          --from-literal=DynamoDb__ServiceUrl=${DYNAMODB_SERVICE_URL} \
+          --dry-run=client -o yaml | kubectl apply -f - -n ${{ env.KUBERNETES_NAMESPACE }}
+        echo "Secret updated successfully"
     
     - name: Update API deployment
       run: |
