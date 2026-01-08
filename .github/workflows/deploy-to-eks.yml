@@ -10,8 +10,13 @@ on:
   # Security: Only allow workflow_run from main branch to prevent execution of untrusted code from forks
   workflow_dispatch:
     inputs:
-      skip_migrator:
-        description: 'Pular execução do Migrator'
+      branch:
+        description: 'Branch para fazer deploy'
+        required: false
+        type: string
+        default: ''
+      run_migrator:
+        description: 'Executar Migrator (padrão: não executar)'
         required: false
         type: boolean
         default: false
@@ -37,8 +42,7 @@ jobs:
 
   deploy:
     needs: check-quality
-    # Security: Only deploy if workflow_run is from the same repository and main branch, or manual trigger from same repository
-    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'workflow_dispatch' && github.repository_owner != '') }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     
     outputs:
@@ -50,10 +54,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       with:
-        # Security: Always checkout from main branch to prevent execution of untrusted code from forks
-        # - workflow_run events are only triggered for main branch (see branches filter on line 8-9)
-        # - workflow_dispatch: For manual triggers, we explicitly use 'main' to ensure security
-        #   This prevents any potential execution of untrusted code from forks
+        # Security: Always checkout from main branch for workflow_run events
         ref: 'main'
     
     - name: Configure AWS credentials
@@ -99,7 +100,7 @@ jobs:
         cache-to: type=inline
     
     - name: Build and push Migrator image
-      if: ${{ !github.event.inputs.skip_migrator }}
+      if: false
       uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
       with:
         context: .
@@ -127,7 +128,7 @@ jobs:
         echo "API deployment updated successfully"
     
     - name: Recreate Migrator job
-      if: ${{ !github.event.inputs.skip_migrator }}
+      if: false
       run: |
         echo "Deleting existing migrator job if it exists..."
         kubectl delete job orderhub-migrator -n ${{ env.KUBERNETES_NAMESPACE }} --ignore-not-found=true
@@ -186,7 +187,166 @@ jobs:
         echo "Verifying deployment..."
         kubectl get deployment ${DEPLOYMENT_NAME} -n ${{ env.KUBERNETES_NAMESPACE }}
         kubectl get pods -l app=orderhub-api -n ${{ env.KUBERNETES_NAMESPACE }}
-        if [ "${{ github.event.inputs.skip_migrator }}" != "true" ]; then
+        echo "Deployment verified successfully!"
+
+  deploy-manual:
+    # Manual deployment from any branch
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository_owner != '' }}
+    runs-on: ubuntu-latest
+    
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+      api-image: ${{ steps.set-tag.outputs.api-image }}
+      migrator-image: ${{ steps.set-tag.outputs.migrator-image }}
+    
+    steps:
+    - name: Determine branch to checkout
+      id: branch-checkout
+      run: |
+        if [ -n "${{ github.event.inputs.branch }}" ]; then
+          BRANCH="${{ github.event.inputs.branch }}"
+        else
+          BRANCH="${{ github.ref_name }}"
+        fi
+        echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+        echo "Checking out branch: ${BRANCH}"
+    
+    - name: Checkout code
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      with:
+        ref: ${{ steps.branch-checkout.outputs.branch }}
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2
+    
+    - name: Set TAG and image names
+      id: set-tag
+      run: |
+        TAG=$(git rev-parse --short HEAD)
+        API_IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:api-${TAG}"
+        MIGRATOR_IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:migrator-${TAG}"
+        
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "api-image=${API_IMAGE}" >> $GITHUB_OUTPUT
+        echo "migrator-image=${MIGRATOR_IMAGE}" >> $GITHUB_OUTPUT
+        
+        echo "TAG: ${TAG}"
+        echo "API Image: ${API_IMAGE}"
+        echo "Migrator Image: ${MIGRATOR_IMAGE}"
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+    
+    - name: Build and push API image
+      uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      with:
+        context: .
+        file: ./src/InterfacesExternas/FastFood.OrderHub.Api/Dockerfile
+        push: true
+        tags: |
+          ${{ steps.set-tag.outputs.api-image }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:api-latest
+        cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:api-latest
+        cache-to: type=inline
+    
+    - name: Build and push Migrator image
+      if: ${{ github.event.inputs.run_migrator == true }}
+      uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      with:
+        context: .
+        file: ./src/InterfacesExternas/FastFood.OrderHub.Migrator/Dockerfile
+        push: true
+        tags: |
+          ${{ steps.set-tag.outputs.migrator-image }}
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:migrator-latest
+        cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:migrator-latest
+        cache-to: type=inline
+    
+    - name: Configure kubectl
+      run: |
+        aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+        kubectl version --client
+    
+    - name: Update API deployment
+      run: |
+        echo "Updating ${DEPLOYMENT_NAME} deployment with new image..."
+        kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${{ steps.set-tag.outputs.api-image }} -n ${{ env.KUBERNETES_NAMESPACE }}
+        
+        echo "Waiting for rollout to complete..."
+        kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${{ env.KUBERNETES_NAMESPACE }} --timeout=300s
+        
+        echo "API deployment updated successfully"
+    
+    - name: Recreate Migrator job
+      if: ${{ github.event.inputs.run_migrator == true }}
+      run: |
+        echo "Deleting existing migrator job if it exists..."
+        kubectl delete job orderhub-migrator -n ${{ env.KUBERNETES_NAMESPACE }} --ignore-not-found=true
+        
+        echo "Waiting for job to be fully deleted..."
+        sleep 10
+        
+        echo "Creating new migrator job..."
+        cat <<EOF | kubectl apply -f -
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: orderhub-migrator
+          namespace: ${{ env.KUBERNETES_NAMESPACE }}
+          labels:
+            app: orderhub-migrator
+            service: orderhub
+        spec:
+          completions: 1
+          parallelism: 1
+          backoffLimit: 3
+          template:
+            metadata:
+              labels:
+                app: orderhub-migrator
+                service: orderhub
+            spec:
+              restartPolicy: Never
+              containers:
+              - name: migrator
+                image: ${{ steps.set-tag.outputs.migrator-image }}
+                imagePullPolicy: Always
+                resources:
+                  requests:
+                    cpu: "100m"
+                    memory: "256Mi"
+                  limits:
+                    cpu: "500m"
+                    memory: "512Mi"
+                terminationGracePeriodSeconds: 30
+                envFrom:
+                - configMapRef:
+                    name: orderhub-config
+                - secretRef:
+                    name: orderhub-secrets
+                command: ["dotnet", "FastFood.OrderHub.Migrator.dll"]
+        EOF
+        
+        echo "Waiting for migrator job to complete..."
+        kubectl wait --for=condition=complete job/orderhub-migrator -n ${{ env.KUBERNETES_NAMESPACE }} --timeout=600s
+        
+        echo "Migrator job completed successfully"
+    
+    - name: Verify deployment
+      run: |
+        echo "Verifying deployment..."
+        kubectl get deployment ${DEPLOYMENT_NAME} -n ${{ env.KUBERNETES_NAMESPACE }}
+        kubectl get pods -l app=orderhub-api -n ${{ env.KUBERNETES_NAMESPACE }}
+        if [ "${{ github.event.inputs.run_migrator }}" == "true" ]; then
           kubectl get job orderhub-migrator -n ${{ env.KUBERNETES_NAMESPACE }}
           kubectl get pods -l app=orderhub-migrator -n ${{ env.KUBERNETES_NAMESPACE }}
         fi
