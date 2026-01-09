@@ -292,6 +292,8 @@ Feature: Get Order By ID
 
 **Status de Qualidade:**
 
+![Evidência de Qualidade SonarCloud](docs/evidenciaQualidade.png)
+
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=alert_status)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=coverage)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=security_rating)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
