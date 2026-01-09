@@ -1,0 +1,2569 @@
+{
+	"info": {
+		"_postman_id": "d12a5ebe-a735-4df6-9b76-af8b152607e3",
+		"name": "FastFood",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15750959",
+		"_collection_link": "https://dark-space-505356.postman.co/workspace/PosTechFiap---TechChallenge~7a91deb7-64bc-4056-b647-dd1582ef027d/collection/15750959-d12a5ebe-a735-4df6-9b76-af8b152607e3?action=share&source=collection_link&creator=15750959"
+	},
+	"item": [
+		{
+			"name": "00-AdminManagement",
+			"item": [
+				{
+					"name": "LoginAdminApi",
+					"item": [
+						{
+							"name": "Login",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// pega o JSON da resposta\r",
+											"const data = pm.response.json();\r",
+											"\r",
+											"// tenta localizar o token em lugares comuns\r",
+											"const token =\r",
+											"  data?.accessToken ||           // ex: { \"AccessToken\": \"...\" }\r",
+											"  data?.content?.accessToken ||  // ex: { \"content\": { \"AccessToken\": \"...\" } }\r",
+											"  data?.Token ||                 // ex: { \"Token\": \"...\" }\r",
+											"  data?.IdToken || null;\r",
+											"\r",
+											"if (token) {\r",
+											"  // salvar como variável global (ou use pm.environment.set se preferir variável de ambiente)\r",
+											"  pm.globals.set(\"AdminTokenCognito\", token);\r",
+											"\r",
+											"  // opcional: salvar também com prefixo Bearer para uso direto em headers\r",
+											"  pm.globals.set(\"AdminAuthHeader\", `Bearer ${token}`);\r",
+											"\r",
+											"  // teste para exibir resultado no Postman\r",
+											"  pm.test(\"Access token encontrado e salvo em AdminTokenCognito\", () => {\r",
+											"    pm.expect(token).to.be.a(\"string\").and.to.have.length.greaterThan(10);\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"Access token NÃO encontrado\", () => {\r",
+											"    pm.expect.fail(\"Nenhum token encontrado em AccessToken / content.AccessToken / Token / IdToken\");\r",
+											"  });\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"admin1\",\r\n    \"password\" : \"12345678\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlLambdaAdmin}}Admin/login",
+									"host": [
+										"{{urlLambdaAdmin}}Admin"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "01-CustomerIdentification",
+			"item": [
+				{
+					"name": "Autenticação do Cliente",
+					"item": [
+						{
+							"name": "Anonymous",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Pega o JSON da resposta\r",
+											"const data = pm.response.json();\r",
+											"\r",
+											"// Extrai os valores do JSON (camelCase)\r",
+											"const token = data?.token || null;\r",
+											"const customerId = data?.customerId || null;\r",
+											"const expiresAt = data?.expiresAt || null;\r",
+											"\r",
+											"console.log(\"Token:\", token);\r",
+											"\r",
+											"// ---- TOKEN ----\r",
+											"if (token) {\r",
+											"  pm.globals.set(\"token\", token);\r",
+											"\r",
+											"  pm.test(\"Token salvo com sucesso\", () => {\r",
+											"    pm.expect(token)\r",
+											"      .to.be.a(\"string\")\r",
+											"      .and.to.have.length.greaterThan(10);\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"Token NÃO encontrado na resposta\", () => {\r",
+											"    pm.expect.fail(\"Campo 'token' não encontrado\");\r",
+											"  });\r",
+											"}\r",
+											"\r",
+											"// ---- CUSTOMER ID ----\r",
+											"if (customerId) {\r",
+											"  pm.globals.set(\"customerId\", customerId);\r",
+											"\r",
+											"  pm.test(\"CustomerId salvo com sucesso\", () => {\r",
+											"    pm.expect(customerId)\r",
+											"      .to.be.a(\"string\")\r",
+											"      .and.to.match(\r",
+											"        /^[0-9a-fA-F-]{36}$/,\r",
+											"        \"CustomerId deve ser um GUID válido\"\r",
+											"      );\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"CustomerId NÃO encontrado na resposta\", () => {\r",
+											"    pm.expect.fail(\"Campo 'customerId' não encontrado\");\r",
+											"  });\r",
+											"}\r",
+											"\r",
+											"// ---- EXPIRAÇÃO (opcional) ----\r",
+											"if (expiresAt) {\r",
+											"  pm.globals.set(\"tokenExpiresAt\", expiresAt);\r",
+											"\r",
+											"  pm.test(\"ExpiresAt salvo com sucesso\", () => {\r",
+											"    pm.expect(new Date(expiresAt).toString())\r",
+											"      .to.not.equal(\"Invalid Date\");\r",
+											"  });\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlAuthCustomer}}customer/anonymous",
+									"host": [
+										"{{urlAuthCustomer}}customer"
+									],
+									"path": [
+										"anonymous"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Identify",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Pega o JSON da resposta\r",
+											"const data = pm.response.json();\r",
+											"\r",
+											"// Extrai os valores do JSON (camelCase)\r",
+											"const token = data?.token || null;\r",
+											"const customerId = data?.customerId || null;\r",
+											"const expiresAt = data?.expiresAt || null;\r",
+											"\r",
+											"console.log(\"Token:\", token);\r",
+											"\r",
+											"// ---- TOKEN ----\r",
+											"if (token) {\r",
+											"  pm.globals.set(\"token\", token);\r",
+											"\r",
+											"  pm.test(\"Token salvo com sucesso\", () => {\r",
+											"    pm.expect(token)\r",
+											"      .to.be.a(\"string\")\r",
+											"      .and.to.have.length.greaterThan(10);\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"Token NÃO encontrado na resposta\", () => {\r",
+											"    pm.expect.fail(\"Campo 'token' não encontrado\");\r",
+											"  });\r",
+											"}\r",
+											"\r",
+											"// ---- CUSTOMER ID ----\r",
+											"if (customerId) {\r",
+											"  pm.globals.set(\"customerId\", customerId);\r",
+											"\r",
+											"  pm.test(\"CustomerId salvo com sucesso\", () => {\r",
+											"    pm.expect(customerId)\r",
+											"      .to.be.a(\"string\")\r",
+											"      .and.to.match(\r",
+											"        /^[0-9a-fA-F-]{36}$/,\r",
+											"        \"CustomerId deve ser um GUID válido\"\r",
+											"      );\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"CustomerId NÃO encontrado na resposta\", () => {\r",
+											"    pm.expect.fail(\"Campo 'customerId' não encontrado\");\r",
+											"  });\r",
+											"}\r",
+											"\r",
+											"// ---- EXPIRAÇÃO (opcional) ----\r",
+											"if (expiresAt) {\r",
+											"  pm.globals.set(\"tokenExpiresAt\", expiresAt);\r",
+											"\r",
+											"  pm.test(\"ExpiresAt salvo com sucesso\", () => {\r",
+											"    pm.expect(new Date(expiresAt).toString())\r",
+											"      .to.not.equal(\"Invalid Date\");\r",
+											"  });\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"cpf\": \"73928116061\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlAuthCustomer}}customer/identify",
+									"host": [
+										"{{urlAuthCustomer}}customer"
+									],
+									"path": [
+										"identify"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Register",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"// Pega o JSON da resposta\r",
+											"const data = pm.response.json();\r",
+											"\r",
+											"// Extrai os valores do JSON (camelCase)\r",
+											"const token = data?.token || null;\r",
+											"const customerId = data?.customerId || null;\r",
+											"const expiresAt = data?.expiresAt || null;\r",
+											"\r",
+											"console.log(\"Token:\", token);\r",
+											"\r",
+											"// ---- TOKEN ----\r",
+											"if (token) {\r",
+											"  pm.globals.set(\"token\", token);\r",
+											"\r",
+											"  pm.test(\"Token salvo com sucesso\", () => {\r",
+											"    pm.expect(token)\r",
+											"      .to.be.a(\"string\")\r",
+											"      .and.to.have.length.greaterThan(10);\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"Token NÃO encontrado na resposta\", () => {\r",
+											"    pm.expect.fail(\"Campo 'token' não encontrado\");\r",
+											"  });\r",
+											"}\r",
+											"\r",
+											"// ---- CUSTOMER ID ----\r",
+											"if (customerId) {\r",
+											"  pm.globals.set(\"customerId\", customerId);\r",
+											"\r",
+											"  pm.test(\"CustomerId salvo com sucesso\", () => {\r",
+											"    pm.expect(customerId)\r",
+											"      .to.be.a(\"string\")\r",
+											"      .and.to.match(\r",
+											"        /^[0-9a-fA-F-]{36}$/,\r",
+											"        \"CustomerId deve ser um GUID válido\"\r",
+											"      );\r",
+											"  });\r",
+											"} else {\r",
+											"  pm.test(\"CustomerId NÃO encontrado na resposta\", () => {\r",
+											"    pm.expect.fail(\"Campo 'customerId' não encontrado\");\r",
+											"  });\r",
+											"}\r",
+											"\r",
+											"// ---- EXPIRAÇÃO (opcional) ----\r",
+											"if (expiresAt) {\r",
+											"  pm.globals.set(\"tokenExpiresAt\", expiresAt);\r",
+											"\r",
+											"  pm.test(\"ExpiresAt salvo com sucesso\", () => {\r",
+											"    pm.expect(new Date(expiresAt).toString())\r",
+											"      .to.not.equal(\"Invalid Date\");\r",
+											"  });\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"cpf\": \"73928116061\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlAuthCustomer}}customer/register",
+									"host": [
+										"{{urlAuthCustomer}}customer"
+									],
+									"path": [
+										"register"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "02-OrderManagement",
+			"item": [
+				{
+					"name": "Product",
+					"item": [
+						{
+							"name": "Get all products",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}Products",
+									"host": [
+										"{{urlMicroservicoOrderHub}}Products"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Product",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Pizza Margherita4\",\n  \"description\": \"Pizza tradicional italiana com mussarela e manjericão\",\n  \"category\": 1,\n  \"price\": 30.0,\n  \"imageUrl\": \"https://images.pexels.com/photos/10068752/pexels-photo-10068752.jpeg\",\n  \"baseIngredients\": [\n    {\n      \"name\": \"Massa\",\n      \"price\": 5.0\n    },\n    {\n      \"name\": \"Molho\",\n      \"price\": 3.0\n    },\n    {\n      \"name\": \"Mussarela\",\n      \"price\": 8.0\n    },\n    {\n      \"name\": \"Manjericão\",\n      \"price\": 1.0\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}Products",
+									"host": [
+										"{{urlMicroservicoOrderHub}}Products"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Product",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"productId\": \"fe646a69-da8d-4de2-8fdb-7e5b080e7bc8\",\n    \"name\": \"Pizza Margherita444\",\n    \"category\": 1,\n    \"price\": 40.0,\n    \"description\": \"Pizza tradicional italiana com mussarela e manjericão\",\n    \"imageUrl\": \"https://images.pexels.com/photos/10068752/pexels-photo-10068752.jpeg\",\n    \"isActive\": true,\n    \"createdAt\": \"2025-12-28T19:58:30.5298302Z\",\n    \"baseIngredients\": [\n        {\n            \"id\": \"112431b8-9e98-4d02-b61e-733430a46216\",\n            \"name\": \"Massa\",\n            \"price\": 5.0\n        },\n        {\n            \"id\": \"6434d213-2fb8-4bd4-9792-05d818c698e4\",\n            \"name\": \"Molho\",\n            \"price\": 3.0\n        },\n        {\n            \"id\": \"2e3f905f-3e05-4ec0-b4fb-ac741f364738\",\n            \"name\": \"Mussarela\",\n            \"price\": 8.0\n        },\n        {\n            \"id\": \"bfd9d3f6-906c-47ba-b4fa-2d06d8385c9a\",\n            \"name\": \"Manjericão\",\n            \"price\": 1.0\n        }\n    ]\n}"
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}/api/Products/fe646a69-da8d-4de2-8fdb-7e5b080e7bc8",
+									"host": [
+										"{{urlMicroservicoOrderHub}}"
+									],
+									"path": [
+										"api",
+										"Products",
+										"fe646a69-da8d-4de2-8fdb-7e5b080e7bc8"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Product",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}/api/Products/fe646a69-da8d-4de2-8fdb-7e5b080e7bc8",
+									"host": [
+										"{{urlMicroservicoOrderHub}}"
+									],
+									"path": [
+										"api",
+										"Products",
+										"fe646a69-da8d-4de2-8fdb-7e5b080e7bc8"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GetProducts by id",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "accept",
+										"value": "*/*",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}Products/758621ad-3807-4a84-af7d-ce8c64245c48",
+									"host": [
+										"{{urlMicroservicoOrderHub}}Products"
+									],
+									"path": [
+										"758621ad-3807-4a84-af7d-ce8c64245c48"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create Product",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Hambúrguer quadruplo 11121111xxxx\",\n  \"category\": 0,\n  \"price\": 25.50,\n  \"ingredients\": [\n    {\n      \"name\": \"Pão Brioche Grandexxxx\",\n      \"price\": 2.50\n    },\n    {\n      \"name\": \"Quatro Hambúrgueresxxxx\",\n      \"price\": 8.00\n    },\n    {\n      \"name\": \"Queijo Cheddarxxxx\",\n      \"price\": 3.00\n    },\n    {\n      \"name\": \"Molho Especialxxx\",\n      \"price\": 1.50\n    }\n  ],\n  \"image\": {\n    \"name\": \"Hambúrguer quadruploxxxx\",\n    \"url\": \"https://images.pexels.com/photos/1639562/pexels-photo-1639562.jpegXXX\"\n  }\n}"
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}Products",
+									"host": [
+										"{{urlMicroservicoOrderHub}}Products"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Order",
+					"item": [
+						{
+							"name": "Start",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"const response = pm.response.json();\r",
+											"const status = pm.response.code;\r",
+											"\r",
+											"if ((status === 200 || status === 201) && response?.success === true) {\r",
+											"  const orderId = response?.content?.orderId;\r",
+											"\r",
+											"  if (orderId) {\r",
+											"    // salva nos dois nomes (pra não quebrar quem usa {{orderid}} hoje)\r",
+											"    pm.globals.set(\"orderId\", orderId);\r",
+											"    pm.globals.set(\"orderid\", orderId);\r",
+											"\r",
+											"    console.log(\"orderId set:\", orderId);\r",
+											"\r",
+											"    pm.test(\"OrderId salvo com sucesso\", () => {\r",
+											"      pm.expect(orderId)\r",
+											"        .to.be.a(\"string\")\r",
+											"        .and.to.match(/^[0-9a-fA-F-]{36}$/);\r",
+											"    });\r",
+											"  } else {\r",
+											"    pm.test(\"OrderId NÃO encontrado\", () => {\r",
+											"      pm.expect.fail(\"Campo content.orderId não encontrado\");\r",
+											"    });\r",
+											"  }\r",
+											"} else {\r",
+											"  pm.test(\"Request falhou ou success=false\", () => {\r",
+											"    pm.expect.fail(`status=${status}, success=${response?.success}`);\r",
+											"  });\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									},
+									{
+										"key": "",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"customerId\": \"{{customerId}}\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/start",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"start"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add-product",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"orderId\": \"{{orderId}}\",\r\n  \"productId\": \"758621ad-3807-4a84-af7d-ce8c64245c48\", /*pizza*/\r\n  \"observation\": \"no capricho\",\r\n  \"Quantity\": 4\r\n\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/add-product",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"add-product"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "remove-product",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"orderId\": \"{{orderId}}\",\r\n  \"orderedProductId\": \"c567a45a-24c1-4867-95d0-4f5ed09e5711\"\r\n\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/remove-product",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"remove-product"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add-product-With-Ingredients",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"orderId\": \"{{orderId}}\",\r\n  \"productId\": \"de904cba-a00b-48f1-a362-6cf9d196ec5f\", /*hamburgue*/\r\n  \"observation\": \"bem passado\",\r\n   \"quantity\": 2,\r\n  \"customIngredients\": [\r\n    {\r\n      \"ingredientId\": \"1a4409e0-3307-4419-92d5-485e3e302493\", /*queijo cheddar*/\r\n      \"quantity\": 2\r\n    },\r\n    {\r\n      \"ingredientId\": \"fbafa1c2-62b3-40c4-9084-2509af6a263a\", /*sem alface*/\r\n      \"quantity\": 0\r\n    }\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/add-product",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"add-product"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update-product",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"orderId\": \"{{orderId}}\",\r\n  \"OrderedProductId\": \"8f7eadd5-a67e-406a-8359-008291e406ba\",\r\n  \"observation\": \"bem passado\",\r\n  \"quantity\": 8,\r\n  \"customIngredients\": [\r\n    {\r\n      \"ingredientId\": \"00000000-0000-0000-0000-000000000007\",\r\n      \"quantity\": 3\r\n    }\r\n  ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/update-product",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"update-product"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Order By Id",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/{{orderId}}",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"{{orderId}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "GetOrders",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text",
+										"disabled": true
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{AdminTokenCognito}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order?pageNumber=1&pageSize=10",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "0",
+											"disabled": true
+										},
+										{
+											"key": "pageNumber",
+											"value": "1"
+										},
+										{
+											"key": "pageSize",
+											"value": "10"
+										},
+										{
+											"key": "",
+											"value": "Bearer {{{AdminTokenCognito}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Confirm-Selection",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicroservicoOrderHub}}order/{{orderId}}/confirm-selection",
+									"host": [
+										"{{urlMicroservicoOrderHub}}order"
+									],
+									"path": [
+										"{{orderId}}",
+										"confirm-selection"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Health",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();\r",
+									"const status = pm.response.code;\r",
+									"\r",
+									"if ((status === 200 || status === 201) && response?.success === true) {\r",
+									"  const orderId = response?.content?.orderId;\r",
+									"\r",
+									"  if (orderId) {\r",
+									"    // salva nos dois nomes (pra não quebrar quem usa {{orderid}} hoje)\r",
+									"    pm.globals.set(\"orderId\", orderId);\r",
+									"    pm.globals.set(\"orderid\", orderId);\r",
+									"\r",
+									"    console.log(\"orderId set:\", orderId);\r",
+									"\r",
+									"    pm.test(\"OrderId salvo com sucesso\", () => {\r",
+									"      pm.expect(orderId)\r",
+									"        .to.be.a(\"string\")\r",
+									"        .and.to.match(/^[0-9a-fA-F-]{36}$/);\r",
+									"    });\r",
+									"  } else {\r",
+									"    pm.test(\"OrderId NÃO encontrado\", () => {\r",
+									"      pm.expect.fail(\"Campo content.orderId não encontrado\");\r",
+									"    });\r",
+									"  }\r",
+									"} else {\r",
+									"  pm.test(\"Request falhou ou success=false\", () => {\r",
+									"    pm.expect.fail(`status=${status}, success=${response?.success}`);\r",
+									"  });\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "",
+								"value": "",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"customerId\": \"{{customerId}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{urlMicroservicoOrderHub}}Health",
+							"host": [
+								"{{urlMicroservicoOrderHub}}Health"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "03-PaymentManagement",
+			"item": [
+				{
+					"name": "00 - Create payment (usado apenas internamente para comunicaçao entre micro serviço",
+					"item": [
+						{
+							"name": "Create",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"orderId\": \"{{orderId}}\",\r\n    \"totalAmount\": 17,\r\n    \"orderSnapshot\": \"{}\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoPaymentStream}}Payment/create",
+									"host": [
+										"{{urlMicroservicoPaymentStream}}Payment"
+									],
+									"path": [
+										"create"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "01-GenerateQrCode",
+					"item": [
+						{
+							"name": "Generate-QrCodeFake (novo)",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicroservicoPaymentStream}}Payment/generate-qrcode?orderId={{orderId}}&fakeCheckout=true",
+									"host": [
+										"{{urlMicroservicoPaymentStream}}Payment"
+									],
+									"path": [
+										"generate-qrcode"
+									],
+									"query": [
+										{
+											"key": "orderId",
+											"value": "{{orderId}}"
+										},
+										{
+											"key": "fakeCheckout",
+											"value": "true"
+										},
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "02-Webhook",
+					"item": [
+						{
+							"name": "FakePaymentNotificationWebhook",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"orderId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\r\n    \"totalAmount\": 0.01,\r\n    \"orderSnapshot\": \"{}\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoPaymentStream}}WebhookPayment/payment-notification?orderId={{orderId}}&fakeCheckout=true",
+									"host": [
+										"{{urlMicroservicoPaymentStream}}WebhookPayment"
+									],
+									"path": [
+										"payment-notification"
+									],
+									"query": [
+										{
+											"key": "orderId",
+											"value": "{{orderId}}"
+										},
+										{
+											"key": "fakeCheckout",
+											"value": "true"
+										},
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "03-Receipt",
+					"item": [
+						{
+							"name": "Receipt From Gateway Payment Fake",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"orderId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\r\n    \"totalAmount\": 0.01,\r\n    \"orderSnapshot\": \"{}\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicroservicoPaymentStream}}Payment/receipt-from-gateway?orderId={{orderId}}&fakeCheckout=true",
+									"host": [
+										"{{urlMicroservicoPaymentStream}}Payment"
+									],
+									"path": [
+										"receipt-from-gateway"
+									],
+									"query": [
+										{
+											"key": "orderId",
+											"value": "{{orderId}}"
+										},
+										{
+											"key": "fakeCheckout",
+											"value": "true"
+										},
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Health",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlMicroservicoPaymentStream}}Health",
+							"host": [
+								"{{urlMicroservicoPaymentStream}}Health"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "Bearer {{token}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "04 - Kitchen Flow Micro serviço",
+			"item": [
+				{
+					"name": "00 - Create Preparation Item (usado internamente para comunicacao com micro servico)",
+					"item": [
+						{
+							"name": "Create",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"orderId\": \"{{orderId}}\",\r\n    \"orderSnapshot\": \"{\\\"items\\\":[{\\\"quantity\\\":3,\\\"productId\\\":\\\"758621ad-3807-4a84-af7d-ce8c64245c48\\\",\\\"finalPrice\\\":141.0,\\\"observation\\\":\\\"no capricho\\\",\\\"productName\\\":\\\"\\\",\\\"customIngredients\\\":[{\\\"name\\\":\\\"Massa\\\",\\\"price\\\":5.0,\\\"quantity\\\":1},{\\\"name\\\":\\\"Molho\\\",\\\"price\\\":3.0,\\\"quantity\\\":1},{\\\"name\\\":\\\"Mussarela\\\",\\\"price\\\":8.0,\\\"quantity\\\":1},{\\\"name\\\":\\\"Manjericão\\\",\\\"price\\\":1.0,\\\"quantity\\\":1}]}],\\\"order\\\":{\\\"code\\\":\\\"ORD202601041874\\\",\\\"orderId\\\":\\\"1c30295e-1972-42d1-a086-efaf1f6a5d1f\\\",\\\"createdAt\\\":\\\"2026-01-04T19:14:47.1626309-03:00\\\"},\\\"pricing\\\":{\\\"currency\\\":\\\"BRL\\\",\\\"totalPrice\\\":141},\\\"version\\\":1}\"\r\n\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{urlMicrosrvicoKitchenFlow}}Preparation",
+									"host": [
+										"{{urlMicrosrvicoKitchenFlow}}Preparation"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "01-PreparationManagement",
+					"item": [
+						{
+							"name": "Get Preparations",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"url": {
+									"raw": "{{urlMicrosrvicoKitchenFlow}}Preparation",
+									"host": [
+										"{{urlMicrosrvicoKitchenFlow}}Preparation"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Tak next order",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"let json;\r",
+											"\r",
+											"try {\r",
+											"  json = pm.response.json();\r",
+											"} catch (e) {\r",
+											"  console.log(\"Response não é JSON válido:\", pm.response.text());\r",
+											"}\r",
+											"\r",
+											"const id = json?.content?.startPreparation?.id;\r",
+											"\r",
+											"pm.test(\"Capturar startPreparation.id e salvar PreparationId\", function () {\r",
+											"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+											"  pm.expect(id, \"content.startPreparation.id\").to.be.a(\"string\").and.not.empty;\r",
+											"});\r",
+											"\r",
+											"// salva em vários lugares (pra não ter erro de escopo)\r",
+											"if (id) {\r",
+											"  pm.environment.set(\"PreparationId\", id);\r",
+											"  pm.collectionVariables.set(\"PreparationId\", id);\r",
+											"  pm.globals.set(\"PreparationId\", id);\r",
+											"\r",
+											"  console.log(\"✅ PreparationId set:\", id);\r",
+											"} else {\r",
+											"  console.warn(\"❌ PreparationId não encontrado no response\", json);\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicrosrvicoKitchenFlow}}Preparation/take-next",
+									"host": [
+										"{{urlMicrosrvicoKitchenFlow}}Preparation"
+									],
+									"path": [
+										"take-next"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Finish",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"let json;\r",
+											"\r",
+											"try {\r",
+											"  json = pm.response.json();\r",
+											"} catch (e) {\r",
+											"  console.log(\"Response não é JSON válido:\", pm.response.text());\r",
+											"}\r",
+											"\r",
+											"const deliveryId = json?.content?.finishPreparation?.deliveryId;\r",
+											"\r",
+											"pm.test(\"Capturar deliveryId e salvar DeliveryId\", function () {\r",
+											"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+											"  pm.expect(\r",
+											"    deliveryId,\r",
+											"    \"content.finishPreparation.deliveryId\"\r",
+											"  ).to.be.a(\"string\").and.not.empty;\r",
+											"});\r",
+											"\r",
+											"// salva em todos os escopos (evita erro de environment)\r",
+											"if (deliveryId) {\r",
+											"  pm.environment.set(\"DeliveryId\", deliveryId);\r",
+											"  pm.collectionVariables.set(\"DeliveryId\", deliveryId);\r",
+											"  pm.globals.set(\"DeliveryId\", deliveryId);\r",
+											"\r",
+											"  console.log(\"✅ DeliveryId set:\", deliveryId);\r",
+											"} else {\r",
+											"  console.warn(\"❌ deliveryId não encontrado no response\", json);\r",
+											"}\r",
+											""
+										],
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {}
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicrosrvicoKitchenFlow}}Preparation/{{PreparationId}}/finish",
+									"host": [
+										"{{urlMicrosrvicoKitchenFlow}}Preparation"
+									],
+									"path": [
+										"{{PreparationId}}",
+										"finish"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Health",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{token}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{urlMicrosrvicoKitchenFlow}}Health",
+									"host": [
+										"{{urlMicrosrvicoKitchenFlow}}Health"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": "Bearer {{token}}",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "02-DeliveryManagement",
+			"item": [
+				{
+					"name": "Get Deliveries",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlMicrosrvicoKitchenFlow}}Delivery/ready?PageNumber=1&PageSize=10",
+							"host": [
+								"{{urlMicrosrvicoKitchenFlow}}Delivery"
+							],
+							"path": [
+								"ready"
+							],
+							"query": [
+								{
+									"key": "PageNumber",
+									"value": "1"
+								},
+								{
+									"key": "PageSize",
+									"value": "10"
+								},
+								{
+									"key": "",
+									"value": "Bearer {{token}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FinalizeDelivery",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlMicrosrvicoKitchenFlow}}Delivery/{{DeliveryId}}/Finalize",
+							"host": [
+								"{{urlMicrosrvicoKitchenFlow}}Delivery"
+							],
+							"path": [
+								"{{DeliveryId}}",
+								"Finalize"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": "Bearer {{token}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FinalizeOrder",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{AdminTokenCognito}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/delivery/finalize?orderId={{orderId}}",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"delivery",
+								"finalize"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SistemasExternos",
+			"item": [
+				{
+					"name": "Mercado Livre",
+					"item": [
+						{
+							"name": "Registrar Loja - Mercado Pago",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Loja FastFood Central\",\r\n  \"external_id\": \"loja001\",\r\n  \"location\": {\r\n    \"street_number\": \"1000\",\r\n    \"street_name\": \"Rua Exemplo\",\r\n    \"city_name\": \"São Paulo\",\r\n    \"state_name\": \"São Paulo\",\r\n    \"latitude\": -23.550520,\r\n    \"longitude\": -46.633308\r\n  }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/users/2472707492/stores",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"users",
+										"2472707492",
+										"stores"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Info totems",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Loja FastFood Central\",\r\n  \"external_id\": \"loja001\",\r\n  \"location\": {\r\n    \"street_number\": \"1000\",\r\n    \"street_name\": \"Rua Exemplo\",\r\n    \"city_name\": \"São Paulo\",\r\n    \"state_name\": \"São Paulo\",\r\n    \"latitude\": -23.550520,\r\n    \"longitude\": -46.633308\r\n  }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/pos",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"pos"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Info  orders totem",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Loja FastFood Central\",\r\n  \"external_id\": \"loja001\",\r\n  \"location\": {\r\n    \"street_number\": \"1000\",\r\n    \"street_name\": \"Rua Exemplo\",\r\n    \"city_name\": \"São Paulo\",\r\n    \"state_name\": \"São Paulo\",\r\n    \"latitude\": -23.550520,\r\n    \"longitude\": -46.633308\r\n  }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/instore/orders/qr/seller/collectors/2472707492/pos/113988446/qrs",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"instore",
+										"orders",
+										"qr",
+										"seller",
+										"collectors",
+										"2472707492",
+										"pos",
+										"113988446",
+										"qrs"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Lojas",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://api.mercadopago.com/stores",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"stores"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Users Me",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "https://api.mercadopago.com/users/me",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"users",
+										"me"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Registrar Ponto de Venda (Totem) - Mercado Pago Copy",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"FastFoodTotemFiap\",\r\n  \"external_id\": \"totem1Fiap\",\r\n  \"fixed_amount\": false,\r\n  \"store_id\": 71193296\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/pos",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"pos"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Gerar qr code pagamento pedido",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"external_reference\": \"xpto01\",\r\n  \"title\": \"Pedido no Totem\",\r\n  \"description\": \"Pagamento do pedido no totem FastFood\",\r\n  \"notification_url\": \"https://seudominio.com/mercadopago/notify\",\r\n  \"total_amount\": 55.50,\r\n  \"items\": [\r\n    {\r\n      \"title\": \"Combo X-Tudo2\",\r\n      /*\"description\": \"1 lanche + 1 batata + 1 bebida\",*/\r\n      \"unit_price\": 55.50,\r\n      \"quantity\": 1,\r\n       \"unit_measure\": \"unit\",\r\n       \"total_amount\": 55.50\r\n    }\r\n  ]\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/instore/orders/qr/seller/collectors/2472707492/pos/totem1Fiap/qrs",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"instore",
+										"orders",
+										"qr",
+										"seller",
+										"collectors",
+										"2472707492",
+										"pos",
+										"totem1Fiap",
+										"qrs"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Gerar qr code pagamento pedido NOVO",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492"
+									},
+									{
+										"key": "X-Idempotency-Key",
+										"value": "123456-abc"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"type\": \"qr\",\n  \"total_amount\": \"55.50\",\n  \"description\": \"Pedido no Totem\",\n  \"external_reference\": \"xpto01\",\n  \"expiration_time\": \"PT16M\",\n  \"config\": {\n    \"qr\": {\n      \"external_pos_id\": \"totem1Fiap\",\n      \"mode\": \"dynamic\"\n    }\n  },\n  \"transactions\": {\n    \"payments\": [\n      {\n        \"amount\": \"55.50\"\n      }\n    ]\n  },\n  \"items\": [\n    {\n      \"title\": \"Combo X‑Tudo2\",\n      \"unit_price\": \"55.50\",\n      \"quantity\": 1,\n      \"unit_measure\": \"unit\",\n      \"external_code\": \"XTUDO2\"\n    }\n  ]\n}\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/v1/orders",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"v1",
+										"orders"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Verificar Pagamento",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"external_reference\": \"pedido-12345\",\r\n  \"title\": \"Pedido no Totem\",\r\n  \"description\": \"Pagamento do pedido no totem FastFood\",\r\n  \"notification_url\": \"https://seudominio.com/mercadopago/notify\",\r\n  \"total_amount\": 48.50,\r\n  \"items\": [\r\n    {\r\n      \"title\": \"Combo X-Tudo\",\r\n      \"description\": \"1 lanche + 1 batata + 1 bebida\",\r\n      \"unit_price\": 48.50,\r\n      \"quantity\": 1,\r\n      \"unit_measure\": \"unit\",\r\n      \"total_amount\": 48.50\r\n    }\r\n  ]\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/merchant_orders/search?external_reference=42dbb4b8-5c56-4bfd-9f8b-a145923879d6",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"merchant_orders",
+										"search"
+									],
+									"query": [
+										{
+											"key": "external_reference",
+											"value": "42dbb4b8-5c56-4bfd-9f8b-a145923879d6"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Verificar comprovante pagamento",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"external_reference\": \"pedido-12345\",\r\n  \"title\": \"Pedido no Totem\",\r\n  \"description\": \"Pagamento do pedido no totem FastFood\",\r\n  \"notification_url\": \"https://seudominio.com/mercadopago/notify\",\r\n  \"total_amount\": 48.50,\r\n  \"items\": [\r\n    {\r\n      \"title\": \"Combo X-Tudo\",\r\n      \"description\": \"1 lanche + 1 batata + 1 bebida\",\r\n      \"unit_price\": 48.50,\r\n      \"quantity\": 1,\r\n      \"unit_measure\": \"unit\",\r\n      \"total_amount\": 48.50\r\n    }\r\n  ]\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/v1/payments/113018381101",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"v1",
+										"payments",
+										"113018381101"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Info orders",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"name\": \"Loja FastFood Central\",\r\n  \"external_id\": \"loja001\",\r\n  \"location\": {\r\n    \"street_number\": \"1000\",\r\n    \"street_name\": \"Rua Exemplo\",\r\n    \"city_name\": \"São Paulo\",\r\n    \"state_name\": \"São Paulo\",\r\n    \"latitude\": -23.550520,\r\n    \"longitude\": -46.633308\r\n  }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/merchant_orders/search?range=date_created&begin_date=2025-05-31T00:00:00Z",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"merchant_orders",
+										"search"
+									],
+									"query": [
+										{
+											"key": "range",
+											"value": "date_created"
+										},
+										{
+											"key": "begin_date",
+											"value": "2025-05-31T00:00:00Z"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Cancell Order",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer APP_USR-6198671941894078-053119-78c96f47b0bf89cdb6a42733c2f6bd8c-2472707492",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"status\": \"cancelled\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "https://api.mercadopago.com/v1/payments/31411504829",
+									"protocol": "https",
+									"host": [
+										"api",
+										"mercadopago",
+										"com"
+									],
+									"path": [
+										"v1",
+										"payments",
+										"31411504829"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Antigo",
+			"item": [
+				{
+					"name": "Generate-QrCode",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"orderId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\r\n    \"totalAmount\": 0.01,\r\n    \"orderSnapshot\": \"string\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{urlBaseApi}}/api/payment/generate-qrcode?orderId={{orderId}}",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"generate-qrcode"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PaymentNotificationWebhook",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/WebhookPayment/payment-notification?orderId={{orderId}}",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"WebhookPayment",
+								"payment-notification"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FakePaymentNotificationWebhook",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/WebhookPayment/payment-notification?orderId={{orderId}}&fakeCheckout=true",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"WebhookPayment",
+								"payment-notification"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								},
+								{
+									"key": "fakeCheckout",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "https://localhost:7082/api/auth?pageNumber=1&pageSize=10",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZWI2NTdhNS01ODNkLTQyOTAtYmVlYS0yNjM3OThjOWMxNWUiLCJyb2xlIjoiYWRtaW4iLCJzY29wZSI6ImJhY2tvZmZpY2UiLCJhbXIiOiJwYXNzd29yZCIsImV4cCI6MTc1OTA5OTc0NSwiaXNzIjoiRmFzdEZvb2RBdXRoIiwiYXVkIjoiRmFzdEZvb2RBUEktQWRtaW4ifQ.3MdSeOeJ7xid8iObSunfKeb8EHAv1hbQ4W5gh-x7NOM",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://localhost:7082/api/auth?pageNumber=1&pageSize=10",
+							"protocol": "https",
+							"host": [
+								"localhost"
+							],
+							"port": "7082",
+							"path": [
+								"api",
+								"auth"
+							],
+							"query": [
+								{
+									"key": "pageNumber",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Receipt From Gateway Payment",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/payment/receipt-from-gateway?orderId={{orderId}}",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"receipt-from-gateway"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								},
+								{
+									"key": "",
+									"value": "Bearer {{token}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Receipt From Gateway Payment Fake",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "[{\"key\":\"Authorization\",\"value\":\"Bearer {{token}}\",\"equals\":true,\"description\":null,\"enabled\":false,\"uuid\":\"9e9993d2-09ad-4bbd-9266-a72a21cac170\"}]",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/payment/receipt-from-gateway?orderId={{orderId}}&fakeCheckout=true",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"receipt-from-gateway"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								},
+								{
+									"key": "fakeCheckout",
+									"value": "true"
+								},
+								{
+									"key": "Authorization",
+									"value": "Bearer {{token}}",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetPreparationsOrders",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{AdminTokenCognito}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/Preparation?PageNumber=1&PageSize=10",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"Preparation"
+							],
+							"query": [
+								{
+									"key": "PageNumber",
+									"value": "1"
+								},
+								{
+									"key": "PageSize",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "finish",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{AdminTokenCognito}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/Preparation/finish?orderId={{orderId}}",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"Preparation",
+								"finish"
+							],
+							"query": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetDeliveryStatus",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "*/*"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{AdminTokenCognito}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{urlBaseApi}}/api/Delivery?PageNumber=1&PageSize=10&Category=1",
+							"host": [
+								"{{urlBaseApi}}"
+							],
+							"path": [
+								"api",
+								"Delivery"
+							],
+							"query": [
+								{
+									"key": "PageNumber",
+									"value": "1"
+								},
+								{
+									"key": "PageSize",
+									"value": "10"
+								},
+								{
+									"key": "Category",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "take-next-order-preparation",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{AdminTokenCognito}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{urlBaseApi}}/api/Preparation/take-next?Authorization=Bearer {{token}}",
+					"host": [
+						"{{urlBaseApi}}"
+					],
+					"path": [
+						"api",
+						"Preparation",
+						"take-next"
+					],
+					"query": [
+						{
+							"key": "Authorization",
+							"value": "Bearer {{token}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "PreparationId",
+			"value": ""
+		},
+		{
+			"key": "DeliveryId",
+			"value": ""
+		}
+	]
+}
