@@ -290,6 +290,16 @@ Feature: Get Order By ID
   - Complexidade ciclomática
   - Vulnerabilidades de segurança
 
+**Status de Qualidade:**
+
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=alert_status)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=coverage)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=security_rating)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=reliability_rating)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=diegoknsk_fiap-fase4-orderhub-api&metric=sqale_rating)](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
+
+**Dashboard Completo**: [Visualizar no SonarCloud](https://sonarcloud.io/project/overview?id=diegoknsk_fiap-fase4-orderhub-api)
+
 #### Pipeline CI/CD
 
 O pipeline de CI/CD valida automaticamente:
